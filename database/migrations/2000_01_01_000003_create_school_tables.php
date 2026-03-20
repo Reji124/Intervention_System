@@ -2,9 +2,21 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     public function up(): void {
+        DB::statement('DROP TABLE IF EXISTS exam_results CASCADE');
+        DB::statement('DROP TABLE IF EXISTS students CASCADE');
+        DB::statement('DROP TABLE IF EXISTS exams CASCADE');
+        DB::statement('DROP TABLE IF EXISTS teacher_subjects CASCADE');
+        DB::statement('DROP TABLE IF EXISTS teachers CASCADE');
+        DB::statement('DROP TABLE IF EXISTS subjects CASCADE');
+        DB::statement('DROP TABLE IF EXISTS courses CASCADE');
+        DB::statement('DROP TABLE IF EXISTS departments CASCADE');
+        DB::statement('DROP TABLE IF EXISTS semesters CASCADE');
+        DB::statement('DROP TABLE IF EXISTS school_years CASCADE');
+
         Schema::create('school_years', function (Blueprint $table) {
             $table->id();
             $table->year('year_start');
