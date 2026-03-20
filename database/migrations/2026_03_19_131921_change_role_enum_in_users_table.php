@@ -7,13 +7,24 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    public function up(): void
-    {
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'assistant') NOT NULL DEFAULT 'assistant'");
-    }
+public function up()
+{
+    // Create the enum type if it doesn't exist
+    DB::statement("DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+            CREATE TYPE user_role AS ENUM ('admin', 'assistant');
+        END IF;
+    END $$");
 
-    public function down(): void
-    {
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'assistant', 'teacher') NOT NULL DEFAULT 'assistant'");
-    }
+    // Change the column type
+    DB::statement("ALTER TABLE users ALTER COLUMN role TYPE user_role USING role::user_role");
+    DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'assistant'");
+    DB::statement("ALTER TABLE users ALTER COLUMN role SET NOT NULL");
+}
+
+public function down()
+{
+    DB::statement("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(255) USING role::VARCHAR");
+    DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'assistant'");
+}
 };

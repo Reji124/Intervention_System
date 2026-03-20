@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE exams MODIFY COLUMN exam_type ENUM('prelim', 'midterm', 'final') NOT NULL");
+        DB::statement("ALTER TABLE exams MODIFY COLUMN exam_type ENUM('prelim', 'midterm', 'prefinal', 'final') NOT NULL");
     }
 
     public function down(): void
