@@ -1,17 +1,15 @@
 <?php
 
-// database/seeders/DatabaseSeeder.php
-
 namespace Database\Seeders;
 
 use App\Models\Department;
+use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamResult;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\Subject;
-use App\Models\SubjectCategory;
 use App\Models\Teacher;
 use App\Models\TeacherSubject;
 use App\Models\User;
@@ -21,7 +19,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin user
         User::create([
             'name'     => 'Admin',
             'email'    => 'admin@school.com',
@@ -29,7 +26,6 @@ class DatabaseSeeder extends Seeder
             'role'     => 'admin',
         ]);
 
-        // Student Assistant account
         User::create([
             'name'     => 'Maria Assistant',
             'email'    => 'assistant@school.com',
@@ -37,20 +33,24 @@ class DatabaseSeeder extends Seeder
             'role'     => 'assistant',
         ]);
 
-        // Teacher (no login — managed by assistant)
         $teacher = Teacher::create([
             'teacher_name' => 'Juan dela Cruz',
         ]);
 
-        $dept     = Department::create(['department_name' => 'BSIT']);
-        $category = SubjectCategory::create(['category_name' => 'Major']);
+        $dept = Department::create(['department_name' => 'BSIT']);
+
+        $course = Course::create([
+            'department_id' => $dept->id,
+            'course_name'   => 'Bachelor of Science in Information Technology',
+        ]);
 
         $subject = Subject::create([
             'department_id' => $dept->id,
-            'category_id'   => $category->id,
+            'course_id'     => $course->id,
             'subject_code'  => 'IT101',
             'subject_name'  => 'Programming 1',
             'year_level'    => '1st year',
+            'category'      => 'Major',
         ]);
 
         $schoolYear = SchoolYear::create([

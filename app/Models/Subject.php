@@ -19,10 +19,7 @@ public function course()
     return $this->belongsTo(Course::class);
 }
 
-public function category()
-{
-    return $this->belongsTo(SubjectCategory::class, 'category_id');
-}
+
 
 public function teacherSubjects()
 {
