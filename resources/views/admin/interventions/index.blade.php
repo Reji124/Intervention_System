@@ -233,10 +233,12 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
             </div>
             <div class="filter-group">
                 <label>Category</label>
-                <select name="category_id">
+                <select name="category">
                     <option value="">All categories</option>
                     @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ $selectedCat == $cat->id ? 'selected' : '' }}>{{ $cat->category_name }}</option>
+                    <option value="{{ $cat }}" {{ $selectedCat == $cat ? 'selected' : '' }}>
+                        {{ $cat }}
+                    </option>
                     @endforeach
                 </select>
             </div>
