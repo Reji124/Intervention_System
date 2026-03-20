@@ -1,0 +1,10 @@
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip"]
+
+[phases.install]
+cmds = ["pip install pdfplumber"]
+```
+
+**`requirements.txt`**:
+```
+pdfplumber==0.11.9
