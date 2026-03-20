@@ -12,7 +12,6 @@ return new class extends Migration {
         Schema::dropIfExists('cache_locks');
         Schema::dropIfExists('cache');
         Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('migrations');
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
