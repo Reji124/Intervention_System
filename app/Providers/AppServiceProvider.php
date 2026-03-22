@@ -21,11 +21,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-            \Illuminate\Support\Facades\Event::listen(
-        \Illuminate\Auth\Events\Login::class,
-        function ($event) {
-            // handled by redirectTo below
+        if (config('app.env') === 'production') {
+            URL::forceScheme('https');
         }
-    );
+
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Login::class,
+            function ($event) {
+                // handled by redirectTo below
+            }
+        );
     }
 }
