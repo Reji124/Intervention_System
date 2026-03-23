@@ -14,6 +14,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class InterventionController extends Controller
 {
@@ -134,7 +135,7 @@ class InterventionController extends Controller
             $selectedSubject = $request->input('subject_id');
             $selectedTeacher = $request->input('teacher_id');
 
-            \Log::error('InterventionController@index failed: ' . $e->getMessage(), [
+            Log::error('InterventionController@index failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
         }
