@@ -87,10 +87,10 @@
                     <label for="exam_type">Exam type <span class="req">*</span></label>
                     <select name="exam_type" id="exam_type" required>
                         <option value="">— Select type —</option>
-                        <option value="prelim"  {{ old('exam_type') == 'prelim'  ? 'selected' : '' }}>Prelim</option>
-                        <option value="midterm" {{ old('exam_type') == 'midterm' ? 'selected' : '' }}>Midterm</option>
-                        <option value="prefinal"  {{ old('exam_type') == 'prefinal'  ? 'selected' : '' }}>Prefinal</option>
-                        <option value="final"   {{ old('exam_type') == 'final'   ? 'selected' : '' }}>Final</option>
+                        <option value="prelim"   {{ old('exam_type') == 'prelim'   ? 'selected' : '' }}>Prelim</option>
+                        <option value="midterm"  {{ old('exam_type') == 'midterm'  ? 'selected' : '' }}>Midterm</option>
+                        <option value="prefinal" {{ old('exam_type') == 'prefinal' ? 'selected' : '' }}>Prefinal</option>
+                        <option value="final"    {{ old('exam_type') == 'final'    ? 'selected' : '' }}>Final</option>
                     </select>
                     @error('exam_type')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
@@ -124,7 +124,7 @@
                 <div class="field">
                     <div class="field-label-block">
                         Item Analysis PDF
-                        <span class="field-label-sub">— reference only</span>
+                        <span class="field-label-sub">— optional</span>
                     </div>
                     <div class="file-upload-area" id="matrix-area">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -138,7 +138,7 @@
 
         <div class="info-note">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>Students scoring <strong>75% and above</strong> = Pass. Rows with missing name or code will be flagged for manual input before saving.</span>
+            <span>Students scoring <strong>75% and above</strong> = Pass. Rows with missing name or code will be flagged for manual input before saving. Name mismatches with existing records will also be highlighted for review.</span>
         </div>
     </div>
 

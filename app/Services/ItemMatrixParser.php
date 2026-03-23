@@ -78,20 +78,24 @@ class ItemMatrixParser
 
     private function findPython(): ?string
     {
+        // ── Always check .env first ───────────────────────────────────────────
+        $envPath = env('PYTHON_PATH');
+        if ($envPath && file_exists($envPath)) {
+            return $envPath;
+        }
+
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
 
         if ($isWindows) {
-            // On Windows use 'where' instead of 'command -v'
-            // Try 'python' first (most Windows installs), then 'python3'
+            // Try where — may fail under Laragon's service PATH
             foreach (['python', 'python3'] as $bin) {
                 $out = shell_exec('where ' . escapeshellarg($bin) . ' 2>NUL');
                 if (!empty(trim($out ?? ''))) {
-                    // 'where' returns all matches — take the first line
                     return trim(explode("\n", trim($out))[0]);
                 }
             }
 
-            // Fallback: common Windows install paths
+            // Common Windows install paths
             $username = get_current_user();
             $winPaths = [
                 'C:\\Python312\\python.exe',
@@ -101,11 +105,16 @@ class ItemMatrixParser
                 "C:\\Users\\{$username}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
                 "C:\\Users\\{$username}\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
                 "C:\\Users\\{$username}\\AppData\\Local\\Programs\\Python\\Python310\\python.exe",
-                // Laragon bundles Python here sometimes
+                "C:\\Users\\{$username}\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+                // Laragon bundled Python
                 'C:\\laragon\\bin\\python\\python-3.12\\python.exe',
                 'C:\\laragon\\bin\\python\\python-3.11\\python.exe',
                 'C:\\laragon\\bin\\python\\python-3.10\\python.exe',
+                // Windows Store Python
+                "C:\\Users\\{$username}\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
+                "C:\\Users\\{$username}\\AppData\\Local\\Microsoft\\WindowsApps\\python3.exe",
             ];
+
             foreach ($winPaths as $path) {
                 if (file_exists($path)) {
                     return $path;

@@ -38,7 +38,7 @@ class PdfUploadController extends Controller
     {
         $request->validate([
             'teacher_subject_id' => 'required|exists:teacher_subjects,id',
-            'exam_type'          => 'required|in:prelim,midterm,final',
+            'exam_type'          => 'required|in:prelim,midterm,prefinal,final',
             'master_list'        => 'required|file|mimes:pdf|max:10240',
             'item_matrix'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
@@ -57,18 +57,54 @@ class PdfUploadController extends Controller
                 ->with('error', 'Could not extract any student data from the PDF. Please check the file and try again.');
         }
 
+        // ── Enrich rows with DB name-match info ──────────────────────────────
+        $existingStudents = Student::whereIn(
+            'student_code',
+            collect($rows)->pluck('student_code')->filter()->unique()->values()->toArray()
+        )->get()->keyBy('student_code');
+
+        foreach ($rows as &$row) {
+            $code    = trim($row['student_code'] ?? '');
+            $pdfName = trim($row['student_name'] ?? '');
+
+            if (!empty($code) && $existing = $existingStudents->get($code)) {
+                $dbName = trim($existing->student_name);
+
+                if (strtolower($dbName) !== strtolower($pdfName)) {
+                    $row['flagged']  = true;
+                    $row['db_name']  = $dbName;
+                    $row['mismatch'] = true;
+                } else {
+                    $row['db_name']  = null;
+                    $row['mismatch'] = false;
+                }
+            } else {
+                $row['db_name']  = null;
+                $row['mismatch'] = false;
+            }
+        }
+        unset($row);
+
         // ── Item matrix (optional) ───────────────────────────────────────────
-        $matrixPath = null;
         $matrixData = null;
 
         if ($request->hasFile('item_matrix')) {
+            // Store temporarily just for parsing, then delete
             $matrixPath = $request->file('item_matrix')
-                ->store('item_matrices', 'public');
+                ->store('temp/item_matrices', 'local');
 
             $matrixParser = new ItemMatrixParser();
             $matrixData   = $matrixParser->parse(
-                storage_path("app/public/{$matrixPath}")
+                storage_path("app/private/{$matrixPath}")
             );
+
+            // Delete the temp file immediately after parsing
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($matrixPath);
+
+            // Store parsed data in session so store() doesn't need to re-parse
+            session(['item_matrix_parsed' => $matrixData]);
+        } else {
+            session()->forget('item_matrix_parsed');
         }
 
         // ── Context ──────────────────────────────────────────────────────────
@@ -78,7 +114,7 @@ class PdfUploadController extends Controller
         $context = [
             'teacher_subject_id' => $ts->id,
             'exam_type'          => $request->exam_type,
-            'item_matrix_path'   => $matrixPath,
+            'item_matrix_path'   => null, // no longer storing the file
             'subject_code'       => $ts->subject->subject_code,
             'subject_name'       => $ts->subject->subject_name,
             'section'            => $ts->section,
@@ -100,7 +136,7 @@ class PdfUploadController extends Controller
     {
         $request->validate([
             'teacher_subject_id'      => 'required|exists:teacher_subjects,id',
-            'exam_type'               => 'required|in:prelim,midterm,final',
+            'exam_type'               => 'required|in:prelim,midterm,prefinal,final',
             'students'                => 'required|array',
             'students.*.student_name' => 'nullable|string|max:255',
             'students.*.student_code' => 'nullable|string|max:50',
@@ -111,16 +147,13 @@ class PdfUploadController extends Controller
 
         DB::transaction(function () use ($request) {
 
-            // Re-parse the matrix PDF to get structured JSON for storage
-            // (matrixData is not posted — re-derive from the stored file)
+            // ── Get matrix data from session (parsed in previous step) ────────
             $matrixJson = null;
-            if ($request->filled('item_matrix_path')) {
-                $filePath = storage_path('app/public/' . $request->item_matrix_path);
-                if (file_exists($filePath)) {
-                    $parser     = new ItemMatrixParser();
-                    $parsed     = $parser->parse($filePath);
-                    $matrixJson = $this->buildMatrixJson($parsed);
-                }
+            $parsed     = session('item_matrix_parsed');
+
+            if ($parsed) {
+                $matrixJson = $this->buildMatrixJson($parsed);
+                session()->forget('item_matrix_parsed');
             }
 
             $exam = Exam::firstOrCreate(
@@ -129,16 +162,15 @@ class PdfUploadController extends Controller
                     'exam_type'          => $request->exam_type,
                 ],
                 [
-                    'item_analysis_path' => $request->item_matrix_path ?: null,
+                    'item_analysis_path' => null,
                     'item_matrix_data'   => $matrixJson,
                 ]
             );
 
-            // Always overwrite matrix data if a new file was uploaded
-            if ($request->filled('item_matrix_path')) {
+            // Always overwrite matrix data if we have new parsed data
+            if ($matrixJson) {
                 $exam->update([
-                    'item_analysis_path' => $request->item_matrix_path,
-                    'item_matrix_data'   => $matrixJson,
+                    'item_matrix_data' => $matrixJson,
                 ]);
             }
 
@@ -154,12 +186,13 @@ class PdfUploadController extends Controller
                 }
 
                 $student = Student::firstOrCreate(
-                    [
-                        'student_code'       => $code,
-                        'teacher_subject_id' => $request->teacher_subject_id,
-                    ],
+                    ['student_code' => $code],
                     ['student_name' => $name]
                 );
+
+                if (strtolower(trim($student->student_name)) !== strtolower($name)) {
+                    $student->update(['student_name' => $name]);
+                }
 
                 $exists = ExamResult::where('student_id', $student->id)
                     ->where('exam_id', $exam->id)
@@ -194,7 +227,7 @@ class PdfUploadController extends Controller
             return null;
         }
 
-        $discCols = \App\Services\ItemMatrixParser::DISCRIMINATION_COLS;
+        $discCols  = \App\Services\ItemMatrixParser::DISCRIMINATION_COLS;
         $diffBands = \App\Services\ItemMatrixParser::DIFFICULTY_BANDS;
 
         $rows = [];
@@ -208,14 +241,14 @@ class PdfUploadController extends Controller
         }
 
         return [
-            'title'          => $parsed['title']      ?? '',
-            'module'         => $parsed['module']      ?? '',
-            'date'           => $parsed['date']        ?? '',
-            'disc_columns'   => $discCols,
-            'rows'           => $rows,
-            'column_totals'  => $parsed['col_totals']  ?? array_fill_keys($discCols, 0),
-            'grand_total'    => $parsed['total_items'] ?? 0,
-            'legend'         => [
+            'title'         => $parsed['title']      ?? '',
+            'module'        => $parsed['module']      ?? '',
+            'date'          => $parsed['date']        ?? '',
+            'disc_columns'  => $discCols,
+            'rows'          => $rows,
+            'column_totals' => $parsed['col_totals']  ?? array_fill_keys($discCols, 0),
+            'grand_total'   => $parsed['total_items'] ?? 0,
+            'legend'        => [
                 'reject'         => $parsed['legend']['reject']         ?? [],
                 'needs_revision' => $parsed['legend']['needs_revision'] ?? [],
                 'acceptable'     => $parsed['legend']['acceptable']     ?? [],

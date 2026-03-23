@@ -14,7 +14,11 @@
     .meta-value.teacher { color:var(--teal); }
     .summary-pills { display:flex; gap:10px; flex-wrap:wrap; }
     .pill { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:12px; font-weight:500; }
-    .pill-total{background:#f0ece3;color:var(--text-mid)} .pill-pass{background:var(--green-bg);color:var(--green)} .pill-fail{background:var(--red-bg);color:var(--red)} .pill-flag{background:var(--amber-bg);color:var(--amber)}
+    .pill-total   { background:#f0ece3; color:var(--text-mid); }
+    .pill-pass    { background:var(--green-bg); color:var(--green); }
+    .pill-fail    { background:var(--red-bg); color:var(--red); }
+    .pill-flag    { background:var(--amber-bg); color:var(--amber); }
+    .pill-new     { background:#e8f0fe; color:#1a56db; }
     .teacher-banner { display:flex; align-items:center; gap:10px; padding:12px 16px; background:#f0faf7; border:1px solid #9fe1cb; border-radius:8px; font-size:13px; color:var(--teal); margin-bottom:16px; }
     .teacher-banner svg { width:16px; height:16px; flex-shrink:0; }
     .teacher-banner strong { font-weight:600; }
@@ -34,7 +38,12 @@
     input.inline-edit.ok { background:#faf8f5; border-color:var(--border); }
     .flag-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; background:var(--amber-bg); color:var(--amber); padding:2px 7px; border-radius:10px; }
     .badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
-    .badge-pass{background:var(--green-bg);color:var(--green)} .badge-fail{background:var(--red-bg);color:var(--red)}
+    .badge-pass     { background:var(--green-bg); color:var(--green); }
+    .badge-fail     { background:var(--red-bg); color:var(--red); }
+    .badge-new      { background:#e8f0fe; color:#1a56db; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; display:inline-block; }
+    .badge-mismatch { background:var(--amber-bg); color:var(--amber); }
+    .db-name-hint { font-size:11px; color:var(--text-soft); margin-top:3px; }
+    .db-name-hint strong { color:var(--amber); font-weight:600; }
     .form-footer { margin-top:20px; display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
     .btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:500; text-decoration:none; border:none; cursor:pointer; transition:all .15s; font-family:'DM Sans',sans-serif; }
     .btn-primary { background:var(--navy); color:var(--white); }
@@ -71,9 +80,9 @@
     .diff-sub { display:block; font-size:10px; font-weight:400; color:var(--text-soft); margin-top:2px; }
     .item-chips { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; }
     .item-chip { display:inline-block; font-size:10px; font-weight:600; padding:2px 6px; border-radius:8px; line-height:1.6; }
-    .chip-reject          { background:#fde8e8; color:#c0392b; }
-    .chip-needs-revision  { background:#fff3cd; color:#856404; }
-    .chip-acceptable      { background:#d4edda; color:#1a6e34; }
+    .chip-reject         { background:#fde8e8; color:#c0392b; }
+    .chip-needs-revision { background:#fff3cd; color:#856404; }
+    .chip-acceptable     { background:#d4edda; color:#1a6e34; }
     .empty-cross { color:#d0cac0; font-size:16px; letter-spacing:3px; }
     .total-cell { font-weight:700; color:var(--text-dark); background:#faf8f5; font-size:13px; text-align:center !important; }
     .matrix-table tfoot td {
@@ -108,6 +117,15 @@
 <input type="hidden" name="exam_type"           value="{{ $context['exam_type'] }}">
 <input type="hidden" name="item_matrix_path"    value="{{ $context['item_matrix_path'] ?? '' }}">
 
+@php
+    $totalRows     = count($rows);
+    $passCount     = collect($rows)->where('remark', 'pass')->count();
+    $failCount     = collect($rows)->where('remark', 'fail')->count();
+    $flaggedCount  = collect($rows)->where('flagged', true)->count();
+    $mismatchCount = collect($rows)->where('mismatch', true)->count();
+    $newCount      = collect($rows)->where('db_name', null)->where('mismatch', false)->filter(fn($r) => !empty($r['student_code']))->count();
+@endphp
+
 {{-- Review header --}}
 <div class="review-header">
     <div class="review-meta">
@@ -129,11 +147,14 @@
         </div>
     </div>
     <div class="summary-pills">
-        <span class="pill pill-total">{{ count($rows) }} students</span>
-        <span class="pill pill-pass">{{ collect($rows)->where('remark','pass')->count() }} pass</span>
-        <span class="pill pill-fail">{{ collect($rows)->where('remark','fail')->count() }} fail</span>
-        @if(collect($rows)->where('flagged',true)->count())
-            <span class="pill pill-flag">{{ collect($rows)->where('flagged',true)->count() }} flagged</span>
+        <span class="pill pill-total">{{ $totalRows }} students</span>
+        <span class="pill pill-pass">{{ $passCount }} pass</span>
+        <span class="pill pill-fail">{{ $failCount }} fail</span>
+        @if($mismatchCount > 0)
+            <span class="pill pill-flag">{{ $mismatchCount }} name mismatch</span>
+        @endif
+        @if($flaggedCount > $mismatchCount)
+            <span class="pill pill-flag">{{ $flaggedCount - $mismatchCount }} missing info</span>
         @endif
     </div>
 </div>
@@ -144,10 +165,19 @@
     <span>You are uploading exam results on behalf of <strong>{{ $context['teacher_name'] }}</strong> for <strong>{{ $context['subject_code'] }} — {{ $context['section'] }}</strong>. Please confirm all information is correct before saving.</span>
 </div>
 
-@if(collect($rows)->where('flagged',true)->count())
+@if($flaggedCount > 0)
 <div class="flag-info">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    <span>Some rows are missing a student name or code (highlighted in yellow). Please fill them in before saving — rows left blank will be skipped.</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <span>
+        Rows highlighted in yellow need attention —
+        <strong>missing name or code</strong> will be skipped on save,
+        and <strong>name mismatches</strong> show the current database value below the input.
+        Edit the field to correct the name, or leave as-is to overwrite the database with the PDF value.
+    </span>
 </div>
 @endif
 
@@ -270,7 +300,7 @@
 {{-- Student results table --}}
 <div class="card">
     <div class="card-header">
-        <span class="card-title">Extracted results — {{ count($rows) }} students</span>
+        <span class="card-title">Extracted results — {{ $totalRows }} students</span>
         <span class="card-sub">Review and correct flagged rows before saving</span>
     </div>
     <table>
@@ -279,7 +309,7 @@
                 <th style="width:40px;text-align:center">#</th>
                 <th>Student name</th>
                 <th>Student code</th>
-                <th>Raw score [T]</th>
+                <th>Raw score</th>
                 <th>Percentage</th>
                 <th>Remark</th>
                 <th>Status</th>
@@ -288,7 +318,11 @@
         <tbody>
             @foreach($rows as $i => $row)
             <tr class="{{ $row['flagged'] ? 'flagged' : '' }}">
+
+                {{-- # --}}
                 <td><div class="td-inner td-num">{{ $row['row_number'] }}</div></td>
+
+                {{-- Student name --}}
                 <td>
                     <div class="td-inner" style="padding:6px 16px">
                         <input type="text"
@@ -296,8 +330,15 @@
                             value="{{ old("students.$i.student_name", $row['student_name']) }}"
                             class="inline-edit {{ $row['flagged'] ? '' : 'ok' }}"
                             placeholder="Enter student name">
+                        @if(!empty($row['mismatch']))
+                            <div class="db-name-hint">
+                                DB has: <strong>{{ $row['db_name'] }}</strong> — edit above to correct, or leave to overwrite
+                            </div>
+                        @endif
                     </div>
                 </td>
+
+                {{-- Student code --}}
                 <td>
                     <div class="td-inner" style="padding:6px 16px">
                         <input type="text"
@@ -308,11 +349,17 @@
                             style="width:130px">
                     </div>
                 </td>
+
+                {{-- Hidden fields --}}
                 <input type="hidden" name="students[{{ $i }}][raw_score]"  value="{{ $row['raw_score'] }}">
                 <input type="hidden" name="students[{{ $i }}][percentage]" value="{{ $row['percentage'] }}">
                 <input type="hidden" name="students[{{ $i }}][remark]"     value="{{ $row['remark'] }}">
                 <input type="hidden" name="students[{{ $i }}][row_number]" value="{{ $row['row_number'] }}">
+
+                {{-- Raw score --}}
                 <td><div class="td-inner">{{ $row['raw_score'] }}</div></td>
+
+                {{-- Percentage --}}
                 <td>
                     <div class="td-inner">
                         <span class="pct {{ $row['remark'] === 'fail' ? 'pct-fail' : 'pct-pass' }}">
@@ -320,16 +367,26 @@
                         </span>
                     </div>
                 </td>
+
+                {{-- Remark --}}
                 <td>
                     <div class="td-inner">
                         <span class="badge badge-{{ $row['remark'] }}">{{ ucfirst($row['remark']) }}</span>
                     </div>
                 </td>
+
+                {{-- Status --}}
                 <td>
                     <div class="td-inner">
-                        @if($row['flagged'])
+                        @if(!empty($row['mismatch']))
+                            <span class="flag-badge badge-mismatch">
+                                ⚠ Name mismatch
+                            </span>
+                        @elseif($row['flagged'])
                             <span class="flag-badge">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                </svg>
                                 Needs info
                             </span>
                         @else
@@ -337,6 +394,7 @@
                         @endif
                     </div>
                 </td>
+
             </tr>
             @endforeach
         </tbody>
@@ -346,7 +404,11 @@
 <div class="form-footer">
     <a href="{{ route('assistant.upload.index') }}" class="btn btn-secondary">← Re-upload</a>
     <button type="submit" class="btn btn-primary">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+        </svg>
         Save results
     </button>
 </div>
