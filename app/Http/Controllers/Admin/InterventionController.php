@@ -19,72 +19,125 @@ class InterventionController extends Controller
 {
     public function index(Request $request)
     {
-        $schoolYears = SchoolYear::with('semesters')->orderByDesc('year_start')->get();
-        $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
-        $departments = Department::withCount('subjects')->orderBy('department_name')->get();
-        $subjects    = Subject::with('department')->orderBy('subject_code')->get();
-        $teachers    = Teacher::orderBy('teacher_name')->get();
+        try {
+            $schoolYears = SchoolYear::with('semesters')->orderByDesc('year_start')->get();
+            $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
+            $departments = Department::orderBy('department_name')->get();
+            $subjects    = Subject::with('department')->orderBy('subject_code')->get();
 
-        // Categories are plain strings stored in subjects.category column
-        $categories = DB::table('subjects')
-                        ->select('category')
-                        ->distinct()
-                        ->whereNotNull('category')
-                        ->orderBy('category')
-                        ->pluck('category');
+            // Teachers need teacherSubjects for the cascading filter data-attributes
+            $teachers = Teacher::with(['teacherSubjects.subject', 'teacherSubjects.semester'])
+                                ->orderBy('teacher_name')
+                                ->get();
 
-        $latestSemester = Semester::with('schoolYear')->latest()->first();
+            // Categories are plain strings from subjects.category
+            $categories = DB::table('subjects')
+                            ->select('category')
+                            ->distinct()
+                            ->whereNotNull('category')
+                            ->where('category', '!=', '')
+                            ->orderBy('category')
+                            ->pluck('category');
 
-        $selectedSY      = $request->input('school_year_id');
-        $selectedSem     = $request->input('semester_id',
-                                $request->has('_filtered') ? null : $latestSemester?->id);
-        $selectedDept    = $request->input('department_id');
-        $selectedCat     = $request->input('category');   // plain string, not an ID
-        $selectedSubject = $request->input('subject_id');
-        $selectedTeacher = $request->input('teacher_id');
+            // Active semester = the one marked active, fallback to latest
+            $activeSemester = Semester::with('schoolYear')
+                                ->where('is_active', true)
+                                ->latest()
+                                ->first()
+                ?? Semester::with('schoolYear')->latest()->first();
 
-        $examQuery = Exam::with([
-                'teacherSubject.teacher',
-                'teacherSubject.subject.department',
-                'teacherSubject.semester.schoolYear',
-                'examResults.student',
-            ])
-            ->whereHas('teacherSubject', function ($q) use (
-                $selectedSY, $selectedSem, $selectedDept,
-                $selectedCat, $selectedSubject, $selectedTeacher
-            ) {
-                if ($selectedSem) {
-                    $q->where('teacher_subjects.semester_id', $selectedSem);
-                } elseif ($selectedSY) {
-                    $q->whereHas('semester', fn($s) =>
-                        $s->where('semesters.school_year_id', $selectedSY));
+            $selectedSY      = $request->input('school_year_id');
+            $selectedSem     = $request->input('semester_id',
+                                    $request->has('_filtered') ? null : $activeSemester?->id);
+            $selectedDept    = $request->input('department_id');
+            $selectedCat     = $request->input('category');
+            $selectedSubject = $request->input('subject_id');
+            $selectedTeacher = $request->input('teacher_id');
+
+            $examQuery = Exam::with([
+                    'teacherSubject.teacher',
+                    'teacherSubject.subject.department',
+                    'teacherSubject.semester.schoolYear',
+                    'examResults.student',
+                ])
+                ->whereHas('teacherSubject', function ($q) use (
+                    $selectedSY, $selectedSem, $selectedDept,
+                    $selectedCat, $selectedSubject, $selectedTeacher
+                ) {
+                    // Semester filter takes priority over SY-only filter
+                    if ($selectedSem) {
+                        $q->where('teacher_subjects.semester_id', $selectedSem);
+                    } elseif ($selectedSY) {
+                        $q->whereHas('semester', fn($s) =>
+                            $s->where('semesters.school_year_id', $selectedSY));
+                    }
+
+                    if ($selectedDept) {
+                        $q->whereHas('subject', fn($s) =>
+                            $s->where('subjects.department_id', $selectedDept));
+                    }
+
+                    if ($selectedCat) {
+                        $q->whereHas('subject', fn($s) =>
+                            $s->where('subjects.category', $selectedCat));
+                    }
+
+                    if ($selectedSubject) {
+                        $q->where('teacher_subjects.subject_id', $selectedSubject);
+                    }
+
+                    if ($selectedTeacher) {
+                        $q->where('teacher_subjects.teacher_id', $selectedTeacher);
+                    }
+                })
+                ->orderByDesc('created_at');
+
+            $exams = $examQuery->get()->map(function ($exam) {
+                // Guard against missing relationship
+                if (!$exam->teacherSubject || !$exam->teacherSubject->subject) {
+                    return null;
                 }
-                if ($selectedDept)
-                    $q->whereHas('subject', fn($s) =>
-                        $s->where('subjects.department_id', $selectedDept));
-                if ($selectedCat)
-                    $q->whereHas('subject', fn($s) =>
-                        $s->where('subjects.category', $selectedCat)); // string match
-                if ($selectedSubject)
-                    $q->where('teacher_subjects.subject_id', $selectedSubject);
-                if ($selectedTeacher)
-                    $q->where('teacher_subjects.teacher_id', $selectedTeacher);
-            })
-            ->orderByDesc('created_at');
 
-        $exams = $examQuery->get()->map(function ($exam) {
-            $results              = $exam->examResults;
-            $exam->total_students = $results->count();
-            $exam->pass_count     = $results->where('remark', 'pass')->count();
-            $exam->fail_count     = $results->where('remark', 'fail')->count();
-            $exam->pass_rate      = $exam->total_students > 0
-                ? round(($exam->pass_count / $exam->total_students) * 100) : 0;
-            return $exam;
-        });
+                $results              = $exam->examResults ?? collect();
+                $exam->total_students = $results->count();
+                $exam->pass_count     = $results->where('remark', 'pass')->count();
+                $exam->fail_count     = $results->where('remark', 'fail')->count();
+                $exam->pass_rate      = $exam->total_students > 0
+                    ? round(($exam->pass_count / $exam->total_students) * 100) : 0;
 
-        $totalFailing   = ExamResult::where('remark', 'fail')->count();
-        $totalPassing   = ExamResult::where('remark', 'pass')->count();
-        $activeSemester = $latestSemester;
+                return $exam;
+            })->filter()->values(); // remove any nulls from broken relationships
+
+            // These reflect ALL records, not just filtered ones
+            $totalFailing = ExamResult::where('remark', 'fail')->count();
+            $totalPassing = ExamResult::where('remark', 'pass')->count();
+
+        } catch (\Exception $e) {
+            // Never show a 500 — return empty state with error notice
+            $exams        = collect();
+            $totalFailing = 0;
+            $totalPassing = 0;
+
+            // Keep filter dropdowns working even on error
+            $schoolYears    = $schoolYears    ?? collect();
+            $semesters      = $semesters      ?? collect();
+            $departments    = $departments    ?? collect();
+            $subjects       = $subjects       ?? collect();
+            $teachers       = $teachers       ?? collect();
+            $categories     = $categories     ?? collect();
+            $activeSemester = $activeSemester ?? null;
+
+            $selectedSY      = $request->input('school_year_id');
+            $selectedSem     = $request->input('semester_id');
+            $selectedDept    = $request->input('department_id');
+            $selectedCat     = $request->input('category');
+            $selectedSubject = $request->input('subject_id');
+            $selectedTeacher = $request->input('teacher_id');
+
+            \Log::error('InterventionController@index failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
 
         return view('admin.interventions.index', compact(
             'schoolYears', 'semesters', 'departments', 'categories',
@@ -126,7 +179,6 @@ class InterventionController extends Controller
     public function destroyResult(ExamResult $examResult)
     {
         $examResult->delete();
-
         return response()->json(['success' => true]);
     }
 
@@ -135,7 +187,6 @@ class InterventionController extends Controller
     {
         $exam->examResults()->delete();
         $exam->delete();
-
         return response()->json(['success' => true]);
     }
 }

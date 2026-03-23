@@ -36,6 +36,14 @@
 .active-tags { display:flex;flex-wrap:wrap;gap:6px;margin-top:12px; }
 .atag { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--amber-bg);border:1px solid #f0c84a;border-radius:20px;font-size:11px;color:var(--amber);font-weight:500; }
 
+/* No results from filters */
+.filter-empty { text-align:center;padding:56px 40px;background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:24px; }
+.filter-empty-icon { width:52px;height:52px;margin:0 auto 16px;background:var(--amber-bg);border-radius:50%;display:flex;align-items:center;justify-content:center; }
+.filter-empty-icon svg { width:24px;height:24px;color:var(--amber); }
+.filter-empty h3 { font-family:'DM Serif Display',serif;font-size:20px;color:var(--text-dark);margin-bottom:8px; }
+.filter-empty p { font-size:13px;color:var(--text-soft);max-width:380px;margin:0 auto 20px; }
+.filter-empty .active-tags { justify-content:center; }
+
 /* Exam list */
 .exam-list-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px; }
 .exam-list-title { font-family:'DM Serif Display',serif;font-size:18px;color:var(--text-dark); }
@@ -143,7 +151,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
 .empty-state h3 { font-family:'DM Serif Display',serif;font-size:20px;color:var(--text-mid);margin-bottom:8px; }
 .empty-state p { font-size:13px;color:var(--text-soft); }
 
-/* ── Edit modal ──────────────────────────────────────────────────────── */
+/* Edit modal */
 .modal-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px; }
 .modal-backdrop.hidden { display:none; }
 .modal { background:var(--white);border-radius:14px;width:100%;max-width:420px;overflow:hidden;animation:modalIn .2s ease both; }
@@ -183,8 +191,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <div class="summary-pills">
-            <div class="spill spill-fail"><span class="spill-val">{{ $totalFailing }}</span><span class="spill-label">Failing</span></div>
-            <div class="spill spill-pass"><span class="spill-val">{{ $totalPassing }}</span><span class="spill-label">Passing</span></div>
+            <div class="spill spill-fail"><span class="spill-val">{{ $totalFailing ?? 0 }}</span><span class="spill-label">Failing</span></div>
+            <div class="spill spill-pass"><span class="spill-val">{{ $totalPassing ?? 0 }}</span><span class="spill-label">Passing</span></div>
         </div>
         <button class="btn-print" onclick="window.print()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -193,7 +201,9 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     </div>
 </div>
 
-{{-- Filter --}}
+{{-- ═══════════════════════════════════════════════════════════
+     CASCADING FILTER PANEL
+     ═══════════════════════════════════════════════════════════ --}}
 <div class="filter-panel">
     <div class="filter-panel-header">
         <div>
@@ -201,105 +211,210 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
             <div class="filter-panel-sub">Defaults to the current semester.</div>
         </div>
     </div>
-    <form method="GET" action="{{ route('admin.interventions.index') }}">
+
+    <form method="GET" action="{{ route('admin.interventions.index') }}" id="filter-form">
         <input type="hidden" name="_filtered" value="1">
         <div class="filter-grid">
+
+            {{-- 1. School Year --}}
             <div class="filter-group">
                 <label>School year</label>
-                <select name="school_year_id">
+                <select name="school_year_id" id="f-sy">
                     <option value="">All school years</option>
                     @foreach($schoolYears as $sy)
-                    <option value="{{ $sy->id }}" {{ $selectedSY == $sy->id ? 'selected' : '' }}>S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}</option>
+                    <option value="{{ $sy->id }}"
+                        {{ $selectedSY == $sy->id ? 'selected' : '' }}>
+                        S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}
+                    </option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- 2. Semester (cascades from SY) --}}
             <div class="filter-group">
                 <label>Semester</label>
-                <select name="semester_id">
+                <select name="semester_id" id="f-sem">
                     <option value="">All semesters</option>
                     @foreach($semesters as $sem)
-                    <option value="{{ $sem->id }}" {{ $selectedSem == $sem->id ? 'selected' : '' }}>{{ $sem->semester_name }} Sem — S.Y. {{ $sem->schoolYear->year_start }}–{{ $sem->schoolYear->year_end }}</option>
+                    <option value="{{ $sem->id }}"
+                        data-sy="{{ $sem->school_year_id }}"
+                        {{ $selectedSem == $sem->id ? 'selected' : '' }}>
+                        {{ $sem->semester_name }} Sem
+                    </option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- 3. Department --}}
             <div class="filter-group">
                 <label>Department</label>
-                <select name="department_id">
+                <select name="department_id" id="f-dept">
                     <option value="">All departments</option>
                     @foreach($departments as $dept)
-                    <option value="{{ $dept->id }}" {{ $selectedDept == $dept->id ? 'selected' : '' }}>{{ $dept->department_name }}</option>
+                    <option value="{{ $dept->id }}"
+                        {{ $selectedDept == $dept->id ? 'selected' : '' }}>
+                        {{ $dept->department_name }}
+                    </option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- 4. Category (cascades from Department via subjects) --}}
             <div class="filter-group">
                 <label>Category</label>
-                <select name="category">
+                <select name="category" id="f-cat">
                     <option value="">All categories</option>
                     @foreach($categories as $cat)
-                    <option value="{{ $cat }}" {{ $selectedCat == $cat ? 'selected' : '' }}>
+                    <option value="{{ $cat }}"
+                        {{ $selectedCat == $cat ? 'selected' : '' }}>
                         {{ $cat }}
                     </option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- 5. Subject (cascades from Department + Category) --}}
             <div class="filter-group">
                 <label>Subject</label>
-                <select name="subject_id">
+                <select name="subject_id" id="f-subj">
                     <option value="">All subjects</option>
                     @foreach($subjects as $subj)
-                    <option value="{{ $subj->id }}" {{ $selectedSubject == $subj->id ? 'selected' : '' }}>{{ $subj->subject_code }} — {{ $subj->subject_name }}</option>
+                    <option value="{{ $subj->id }}"
+                        data-dept="{{ $subj->department_id }}"
+                        data-cat="{{ $subj->category }}"
+                        {{ $selectedSubject == $subj->id ? 'selected' : '' }}>
+                        {{ $subj->subject_code }} — {{ $subj->subject_name }}
+                    </option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- 6. Teacher (cascades from Semester + Department) --}}
             <div class="filter-group">
                 <label>Teacher</label>
-                <select name="teacher_id">
+                <select name="teacher_id" id="f-teacher">
                     <option value="">All teachers</option>
                     @foreach($teachers as $teacher)
-                    <option value="{{ $teacher->id }}" {{ $selectedTeacher == $teacher->id ? 'selected' : '' }}>{{ $teacher->teacher_name }}</option>
+                    <option value="{{ $teacher->id }}"
+                        data-dept="{{ implode(',', $teacher->teacherSubjects->pluck('subject.department_id')->unique()->filter()->values()->toArray()) }}"
+                        data-sem="{{ implode(',', $teacher->teacherSubjects->pluck('semester_id')->unique()->filter()->values()->toArray()) }}"
+                        {{ $selectedTeacher == $teacher->id ? 'selected' : '' }}>
+                        {{ $teacher->teacher_name }}
+                    </option>
                     @endforeach
                 </select>
             </div>
+
         </div>
+
         <div class="filter-actions">
             <button type="submit" class="btn-apply">Apply filters</button>
-            <a href="{{ route('admin.interventions.index') }}" class="btn-reset">Reset to default</a>
+            <a href="{{ route('admin.interventions.index') }}" class="btn-reset">Reset</a>
         </div>
-        @php $hasFilters = $selectedSY || $selectedDept || $selectedCat || $selectedSubject || $selectedTeacher || ($selectedSem && $selectedSem != $activeSemester?->id); @endphp
+
+        {{-- Active tags --}}
+        @php
+            $hasFilters = $selectedSY || $selectedDept || $selectedCat
+                       || $selectedSubject || $selectedTeacher
+                       || ($selectedSem && $selectedSem != $activeSemester?->id);
+        @endphp
         @if($hasFilters)
         <div class="active-tags">
-            @if($selectedSem)  @php $sem  = $semesters->find($selectedSem);      @endphp @if($sem)  <span class="atag">{{ $sem->semester_name }} Sem S.Y. {{ $sem->schoolYear->year_start }}–{{ $sem->schoolYear->year_end }}</span>@endif @endif
-            @if($selectedDept) @php $dept = $departments->find($selectedDept);    @endphp @if($dept) <span class="atag">{{ $dept->department_name }}</span>@endif @endif
-            @if($selectedCat)  @php $cat  = $categories->find($selectedCat);      @endphp @if($cat)  <span class="atag">{{ $cat->category_name }}</span>@endif @endif
-            @if($selectedSubject) @php $subj = $subjects->find($selectedSubject); @endphp @if($subj) <span class="atag">{{ $subj->subject_code }}</span>@endif @endif
-            @if($selectedTeacher) @php $tchr = $teachers->find($selectedTeacher); @endphp @if($tchr) <span class="atag">{{ $tchr->teacher_name }}</span>@endif @endif
+            @if($selectedSY)
+                @php $sy = $schoolYears->find($selectedSY); @endphp
+                @if($sy) <span class="atag">S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}</span> @endif
+            @endif
+            @if($selectedSem)
+                @php $sem = $semesters->find($selectedSem); @endphp
+                @if($sem) <span class="atag">{{ $sem->semester_name }} Sem</span> @endif
+            @endif
+            @if($selectedDept)
+                @php $dept = $departments->find($selectedDept); @endphp
+                @if($dept) <span class="atag">{{ $dept->department_name }}</span> @endif
+            @endif
+            @if($selectedCat) <span class="atag">{{ $selectedCat }}</span> @endif
+            @if($selectedSubject)
+                @php $subj = $subjects->find($selectedSubject); @endphp
+                @if($subj) <span class="atag">{{ $subj->subject_code }}</span> @endif
+            @endif
+            @if($selectedTeacher)
+                @php $tchr = $teachers->find($selectedTeacher); @endphp
+                @if($tchr) <span class="atag">{{ $tchr->teacher_name }}</span> @endif
+            @endif
         </div>
         @else
         <div class="active-tags">
-            <span class="atag" style="background:var(--green-bg);border-color:#b7dfc5;color:var(--green)">Showing: {{ $activeSemester?->semester_name }} Sem S.Y. {{ $activeSemester?->schoolYear?->year_start }}–{{ $activeSemester?->schoolYear?->year_end }} (default)</span>
+            <span class="atag" style="background:var(--green-bg);border-color:#b7dfc5;color:var(--green)">
+                Showing: {{ $activeSemester?->semester_name }} Sem
+                S.Y. {{ $activeSemester?->schoolYear?->year_start }}–{{ $activeSemester?->schoolYear?->year_end }} (default)
+            </span>
         </div>
         @endif
     </form>
 </div>
 
-{{-- Exam list --}}
+{{-- ═══════════════════════════════════════════════════════════
+     EMPTY STATE — filters returned nothing
+     ═══════════════════════════════════════════════════════════ --}}
+@if(isset($exams) && $exams->isEmpty() && $hasFilters)
+<div class="filter-empty">
+    <div class="filter-empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
+    </div>
+    <h3>No results found</h3>
+    <p>No exams match your current filter combination. Try broadening your selection or reset to the default view.</p>
+    @php $hasFilters = $selectedSY || $selectedDept || $selectedCat || $selectedSubject || $selectedTeacher || ($selectedSem && $selectedSem != $activeSemester?->id); @endphp
+    <div class="active-tags">
+        @if($selectedSY)
+            @php $sy = $schoolYears->find($selectedSY); @endphp
+            @if($sy) <span class="atag">S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}</span> @endif
+        @endif
+        @if($selectedSem)
+            @php $sem = $semesters->find($selectedSem); @endphp
+            @if($sem) <span class="atag">{{ $sem->semester_name }} Sem</span> @endif
+        @endif
+        @if($selectedDept)
+            @php $dept = $departments->find($selectedDept); @endphp
+            @if($dept) <span class="atag">{{ $dept->department_name }}</span> @endif
+        @endif
+        @if($selectedCat) <span class="atag">{{ $selectedCat }}</span> @endif
+        @if($selectedSubject)
+            @php $subj = $subjects->find($selectedSubject); @endphp
+            @if($subj) <span class="atag">{{ $subj->subject_code }}</span> @endif
+        @endif
+        @if($selectedTeacher)
+            @php $tchr = $teachers->find($selectedTeacher); @endphp
+            @if($tchr) <span class="atag">{{ $tchr->teacher_name }}</span> @endif
+        @endif
+    </div>
+    <div style="margin-top:20px">
+        <a href="{{ route('admin.interventions.index') }}" class="btn-apply" style="text-decoration:none;display:inline-block">Reset filters</a>
+    </div>
+</div>
+
+@elseif(isset($exams) && $exams->isNotEmpty())
+
+{{-- ═══════════════════════════════════════════════════════════
+     EXAM LIST
+     ═══════════════════════════════════════════════════════════ --}}
 <div class="exam-list-header">
     <div>
         <div class="exam-list-title">Exam results</div>
         <div class="exam-count">{{ $exams->count() }} exam(s) found</div>
     </div>
-    @if($exams->count())
     <button class="expand-btn" id="expand-all-btn" onclick="expandAll()">Expand all</button>
-    @endif
 </div>
 
-@forelse($exams as $exam)
+@foreach($exams as $exam)
 @php
     $ts        = $exam->teacherSubject;
-    $subj      = $ts->subject;
-    $tchr      = $ts->teacher;
-    $sem       = $ts->semester;
-    $inits     = collect(explode(' ', $tchr->teacher_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->implode('');
+    $subj      = $ts?->subject;
+    $tchr      = $ts?->teacher;
+    $sem       = $ts?->semester;
+    $inits     = $tchr ? collect(explode(' ', $tchr->teacher_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->implode('') : '?';
     $hasMatrix = !empty($exam->item_matrix_data);
     $matrix    = $exam->item_matrix_data ?? [];
     $discCols  = $matrix['disc_columns']  ?? [];
@@ -315,6 +430,11 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     };
 @endphp
 
+{{-- Skip exams with broken relationships to prevent 500 --}}
+@if(!$ts || !$subj || !$tchr || !$sem)
+    @continue
+@endif
+
 <div class="exam-block" id="exam-block-{{ $exam->id }}">
     <div class="exam-header" onclick="toggleExam(this)">
         <div class="exam-left">
@@ -323,23 +443,27 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                 <div class="exam-title">
                     {{ $tchr->teacher_name }}
                     <span class="exam-badge eb-{{ $exam->exam_type }}">{{ ucfirst($exam->exam_type) }}</span>
-                    @if($hasMatrix)<span class="matrix-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Matrix</span>@endif
+                    @if($hasMatrix)
+                    <span class="matrix-indicator">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        Matrix
+                    </span>
+                    @endif
                 </div>
                 <div class="exam-meta">
                     <span>{{ $subj->subject_code }} — {{ $subj->subject_name }}</span>
-                    <span>{{ $ts->section }}</span>
-                    <span>{{ $sem->semester_name }} Sem, S.Y. {{ $sem->schoolYear->year_start }}–{{ $sem->schoolYear->year_end }}</span>
+                    <span>{{ $ts->section ?? '—' }}</span>
+                    <span>{{ $sem->semester_name }} Sem, S.Y. {{ $sem->schoolYear?->year_start }}–{{ $sem->schoolYear?->year_end }}</span>
                 </div>
             </div>
         </div>
         <div class="exam-right">
             <div class="stat-chips">
-                <div class="chip chip-total"><span class="chip-val" id="total-{{ $exam->id }}">{{ $exam->total_students }}</span><span class="chip-label">Total</span></div>
-                <div class="chip chip-pass"><span class="chip-val" id="pass-{{ $exam->id }}">{{ $exam->pass_count }}</span><span class="chip-label">Passed</span></div>
-                <div class="chip chip-fail"><span class="chip-val" id="fail-{{ $exam->id }}">{{ $exam->fail_count }}</span><span class="chip-label">Failed</span></div>
-                <div class="chip chip-rate"><span class="chip-val" id="rate-{{ $exam->id }}">{{ $exam->pass_rate }}%</span><span class="chip-label">Pass rate</span></div>
+                <div class="chip chip-total"><span class="chip-val" id="total-{{ $exam->id }}">{{ $exam->total_students ?? 0 }}</span><span class="chip-label">Total</span></div>
+                <div class="chip chip-pass"><span class="chip-val" id="pass-{{ $exam->id }}">{{ $exam->pass_count ?? 0 }}</span><span class="chip-label">Passed</span></div>
+                <div class="chip chip-fail"><span class="chip-val" id="fail-{{ $exam->id }}">{{ $exam->fail_count ?? 0 }}</span><span class="chip-label">Failed</span></div>
+                <div class="chip chip-rate"><span class="chip-val" id="rate-{{ $exam->id }}">{{ $exam->pass_rate ?? 0 }}%</span><span class="chip-label">Pass rate</span></div>
             </div>
-            {{-- Delete exam button (stops propagation so it doesn't toggle) --}}
             <button class="btn-delete-exam" onclick="event.stopPropagation();deleteExam({{ $exam->id }})">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 Delete exam
@@ -349,18 +473,19 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     </div>
 
     <div class="exam-body">
+
         {{-- Master list --}}
         <div class="exam-section">
             <div class="exam-section-header" onclick="toggleSection(this)">
                 <div class="section-title">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                     Master list
-                    <span style="font-size:11px;color:var(--text-soft);font-weight:400">— <span id="count-{{ $exam->id }}">{{ $exam->total_students }}</span> students</span>
+                    <span style="font-size:11px;color:var(--text-soft);font-weight:400">— <span id="count-{{ $exam->id }}">{{ $exam->total_students ?? 0 }}</span> students</span>
                 </div>
                 <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="exam-section-body">
-                @if($exam->examResults->count())
+                @if($exam->examResults && $exam->examResults->count())
                 <table class="master-tbl">
                     <thead>
                         <tr>
@@ -369,7 +494,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                         </tr>
                     </thead>
                     <tbody id="tbody-{{ $exam->id }}">
-                        @foreach($exam->examResults->sortBy('student.student_name') as $i => $result)
+                        @foreach($exam->examResults->sortBy(fn($r) => $r->student?->student_name) as $i => $result)
+                        @if(!$result->student) @continue @endif
                         <tr id="row-{{ $result->id }}">
                             <td style="font-size:11px;color:var(--text-soft)">{{ $i + 1 }}</td>
                             <td><div class="td-name">{{ $result->student->student_name }}</div></td>
@@ -445,7 +571,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                                         <td>
                                             <span class="diff-dot" style="background:{{ $diffColors[$row['difficulty']] ?? '#888' }}"></span>
                                             {{ $row['difficulty'] }}
-                                            <span style="font-size:10px;color:var(--text-soft);font-weight:400;margin-left:2px">{{ $row['label'] }}</span>
+                                            <span style="font-size:10px;color:var(--text-soft);font-weight:400;margin-left:2px">{{ $row['label'] ?? '' }}</span>
                                         </td>
                                         @foreach($discCols as $col)
                                         <td>
@@ -458,7 +584,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                                             @endif
                                         </td>
                                         @endforeach
-                                        <td class="row-total">{{ $row['total'] }}</td>
+                                        <td class="row-total">{{ $row['total'] ?? 0 }}</td>
                                     </tr>
                                     @endforeach
                                     <tr class="totals-row">
@@ -483,15 +609,28 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                         <div class="summary-card">
                             <div class="summary-card-header">By difficulty level</div>
                             @foreach($matrixRows as $row)
-                            @php $color = $diffColors[$row['difficulty']] ?? '#888'; $pct = $grandTotal > 0 ? round(($row['total'] / $grandTotal) * 100) : 0; @endphp
+                            @php
+                                $color = $diffColors[$row['difficulty']] ?? '#888';
+                                $pct   = $grandTotal > 0 ? round(($row['total'] / $grandTotal) * 100) : 0;
+                            @endphp
                             <div class="summary-row">
                                 <div class="summary-diff">
                                     <span class="diff-dot" style="background:{{ $color }}"></span>
-                                    <div><div class="summary-diff-label">{{ $row['difficulty'] }}</div><div class="summary-diff-sub">{{ $row['label'] }}</div></div>
+                                    <div>
+                                        <div class="summary-diff-label">{{ $row['difficulty'] }}</div>
+                                        <div class="summary-diff-sub">{{ $row['label'] ?? '' }}</div>
+                                    </div>
                                 </div>
-                                <div style="text-align:right"><div class="summary-count">{{ $row['total'] }}</div><div style="font-size:10px;color:var(--text-soft)">{{ $pct }}%</div></div>
+                                <div style="text-align:right">
+                                    <div class="summary-count">{{ $row['total'] ?? 0 }}</div>
+                                    <div style="font-size:10px;color:var(--text-soft)">{{ $pct }}%</div>
+                                </div>
                             </div>
-                            <div style="padding:0 14px 8px"><div class="summary-bar-wrap"><div class="summary-bar-fill" style="width:{{ $pct }}%;background:{{ $color }}"></div></div></div>
+                            <div style="padding:0 14px 8px">
+                                <div class="summary-bar-wrap">
+                                    <div class="summary-bar-fill" style="width:{{ $pct }}%;background:{{ $color }}"></div>
+                                </div>
+                            </div>
                             @endforeach
                         </div>
                     </div>
@@ -507,11 +646,18 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                 @endif
             </div>
         </div>
+
     </div>
 </div>
-@empty
-<div class="empty-state"><h3>No exams found</h3><p>No exams match your current filters.</p></div>
-@endforelse
+@endforeach
+
+@else
+{{-- No exams at all (default view, no filters active) --}}
+<div class="empty-state">
+    <h3>No exams found</h3>
+    <p>No exams have been recorded yet for the current semester.</p>
+</div>
+@endif
 
 {{-- Edit modal --}}
 <div class="modal-backdrop hidden" id="edit-modal">
@@ -586,7 +732,6 @@ function closeEdit() {
     editingResultId = null;
     editingExamId   = null;
 }
-// Live preview
 ['edit-raw','edit-total'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
         const raw   = parseInt(document.getElementById('edit-raw').value);
@@ -615,7 +760,6 @@ async function saveEdit() {
     const btn = document.getElementById('save-btn');
     btn.disabled = true;
     btn.textContent = 'Saving…';
-
     try {
         const res  = await fetch(`/admin/exam-results/${editingResultId}`, {
             method: 'PATCH',
@@ -624,7 +768,6 @@ async function saveEdit() {
         });
         const data = await res.json();
         if (data.success) {
-            // Update row in place
             document.getElementById(`score-${editingResultId}`).textContent = data.raw_score;
             const pctEl = document.getElementById(`pct-${editingResultId}`);
             pctEl.textContent = data.percentage + '%';
@@ -632,7 +775,6 @@ async function saveEdit() {
             const badgeEl = document.getElementById(`badge-${editingResultId}`);
             badgeEl.textContent = data.remark.charAt(0).toUpperCase() + data.remark.slice(1);
             badgeEl.className = `badge badge-${data.remark}`;
-            // Refresh summary chips
             refreshExamChips(editingExamId);
             closeEdit();
         }
@@ -673,9 +815,8 @@ async function deleteExam(examId) {
 function refreshExamChips(examId) {
     const tbody = document.getElementById(`tbody-${examId}`);
     if (!tbody) return;
-    const rows   = tbody.querySelectorAll('tr');
     let pass = 0, fail = 0;
-    rows.forEach(row => {
+    tbody.querySelectorAll('tr').forEach(row => {
         const badge = row.querySelector('[id^="badge-"]');
         if (!badge) return;
         if (badge.classList.contains('badge-pass')) pass++;
@@ -695,5 +836,85 @@ function refreshExamChips(examId) {
 document.getElementById('edit-modal').addEventListener('click', function(e) {
     if (e.target === this) closeEdit();
 });
+
+// ══════════════════════════════════════════════════════════════
+//  CASCADING FILTER ENGINE
+// ══════════════════════════════════════════════════════════════
+(function () {
+    const sy      = document.getElementById('f-sy');
+    const sem     = document.getElementById('f-sem');
+    const dept    = document.getElementById('f-dept');
+    const cat     = document.getElementById('f-cat');
+    const subj    = document.getElementById('f-subj');
+    const teacher = document.getElementById('f-teacher');
+
+    if (!sy || !sem || !dept || !cat || !subj || !teacher) return;
+
+    // Snapshot all non-placeholder options on page load
+    const allOpts = {};
+    [sy, sem, dept, cat, subj, teacher].forEach(sel => {
+        allOpts[sel.id] = Array.from(sel.options)
+            .filter(o => o.value !== '')
+            .map(o => o.cloneNode(true));
+    });
+
+    function rebuild(select, keepFn) {
+        const current = select.value;
+        while (select.options.length > 1) select.remove(1);
+        allOpts[select.id].forEach(o => {
+            if (keepFn(o)) select.appendChild(o.cloneNode(true));
+        });
+        select.value = current;
+        if (select.value !== current) select.value = '';
+    }
+
+    function applySY() {
+        const syId = sy.value;
+        rebuild(sem, o => !syId || o.dataset.sy === syId);
+    }
+
+    function applySem() {
+        const semId = sem.value;
+        const deptId = dept.value;
+        rebuild(teacher, o => {
+            const tSems  = (o.dataset.sem  || '').split(',').filter(Boolean);
+            const tDepts = (o.dataset.dept || '').split(',').filter(Boolean);
+            const semOk  = !semId  || tSems.includes(semId);
+            const deptOk = !deptId || tDepts.includes(deptId);
+            return semOk && deptOk;
+        });
+    }
+
+    function applyDept() {
+        const deptId = dept.value;
+        rebuild(subj, o => {
+            const deptOk = !deptId || o.dataset.dept === deptId;
+            const catOk  = !cat.value || o.dataset.cat === cat.value;
+            return deptOk && catOk;
+        });
+        applySem();
+    }
+
+    function applyCat() {
+        const deptId = dept.value;
+        const catId  = cat.value;
+        rebuild(subj, o => {
+            const deptOk = !deptId || o.dataset.dept === deptId;
+            const catOk  = !catId  || o.dataset.cat  === catId;
+            return deptOk && catOk;
+        });
+    }
+
+    sy.addEventListener('change',      () => { applySY(); applySem(); applyDept(); });
+    sem.addEventListener('change',     () => { applySem(); });
+    dept.addEventListener('change',    () => { applyDept(); });
+    cat.addEventListener('change',     () => { applyCat(); });
+
+    // Sync on page load for restored query-string values
+    applySY();
+    applySem();
+    applyDept();
+    applyCat();
+})();
 </script>
-@endpush
+@endpush    
