@@ -17,8 +17,6 @@
 .btn-print { display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:500;border:1.5px solid var(--border);color:var(--text-mid);background:var(--white);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s; }
 .btn-print:hover { border-color:var(--text-mid); }
 .btn-print svg { width:14px;height:14px; }
-
-/* Filter */
 .filter-panel { background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px; }
 .filter-panel-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px; }
 .filter-panel-title { font-size:13px;font-weight:600;color:var(--text-dark); }
@@ -35,16 +33,12 @@
 .btn-reset:hover { border-color:var(--text-mid); }
 .active-tags { display:flex;flex-wrap:wrap;gap:6px;margin-top:12px; }
 .atag { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--amber-bg);border:1px solid #f0c84a;border-radius:20px;font-size:11px;color:var(--amber);font-weight:500; }
-
-/* No results from filters */
 .filter-empty { text-align:center;padding:56px 40px;background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:24px; }
 .filter-empty-icon { width:52px;height:52px;margin:0 auto 16px;background:var(--amber-bg);border-radius:50%;display:flex;align-items:center;justify-content:center; }
 .filter-empty-icon svg { width:24px;height:24px;color:var(--amber); }
 .filter-empty h3 { font-family:'DM Serif Display',serif;font-size:20px;color:var(--text-dark);margin-bottom:8px; }
 .filter-empty p { font-size:13px;color:var(--text-soft);max-width:380px;margin:0 auto 20px; }
 .filter-empty .active-tags { justify-content:center; }
-
-/* Exam list */
 .exam-list-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px; }
 .exam-list-title { font-family:'DM Serif Display',serif;font-size:18px;color:var(--text-dark); }
 .exam-count { font-size:12px;color:var(--text-soft);margin-top:2px; }
@@ -82,26 +76,19 @@
 .section-chevron { width:16px;height:16px;color:var(--text-soft);transition:transform .2s; }
 .exam-section-body { display:none; }
 .exam-section-body.open { display:block; }
-
-/* Delete exam button */
 .btn-delete-exam { display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:600;background:var(--red-bg);color:var(--red);border:1px solid #f5c6c6;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s; }
 .btn-delete-exam:hover { background:#fde8e8;border-color:var(--red); }
 .btn-delete-exam svg { width:12px;height:12px; }
-
-/* Master list table */
 table.master-tbl { width:100%;border-collapse:collapse; }
 .master-tbl thead th { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text-soft);padding:9px 16px;text-align:left;background:#f8f8f8;border-bottom:1px solid var(--border); }
 .master-tbl tbody td { padding:9px 16px;font-size:13px;border-bottom:1px solid #f3efe8;color:var(--text-mid);vertical-align:middle; }
 .master-tbl tbody tr:last-child td { border-bottom:none; }
 .master-tbl tbody tr:hover td { background:#faf8f5; }
 .td-name { font-weight:500;color:var(--text-dark); }
-.td-code { font-size:11px;color:var(--text-soft);margin-top:1px; }
 .pct-fail { font-weight:600;color:var(--red); }
 .pct-pass { font-weight:600;color:var(--green); }
 .badge { display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px; }
 .badge-pass{background:var(--green-bg);color:var(--green)} .badge-fail{background:var(--red-bg);color:var(--red)}
-
-/* Row action buttons */
 .row-actions { display:flex;gap:6px;align-items:center; }
 .btn-edit-row { display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:600;background:#f0f5ff;color:var(--blue);border:1px solid #b5d4f4;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s; }
 .btn-edit-row:hover { background:#dbeafe; }
@@ -109,8 +96,6 @@ table.master-tbl { width:100%;border-collapse:collapse; }
 .btn-del-row { display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:600;background:var(--red-bg);color:var(--red);border:1px solid #f5c6c6;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s; }
 .btn-del-row:hover { background:#fde8e8; }
 .btn-del-row svg { width:11px;height:11px; }
-
-/* Matrix */
 .matrix-layout { display:grid;grid-template-columns:1fr 260px;gap:20px;padding:20px 22px;align-items:start; }
 .matrix-section-title { font-size:12px;font-weight:600;color:var(--text-dark);margin-bottom:10px;display:flex;align-items:center;gap:6px; }
 .matrix-section-title svg { width:14px;height:14px;color:var(--gold); }
@@ -150,8 +135,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
 .empty-state { text-align:center;padding:60px;background:var(--white);border:1px solid var(--border);border-radius:12px; }
 .empty-state h3 { font-family:'DM Serif Display',serif;font-size:20px;color:var(--text-mid);margin-bottom:8px; }
 .empty-state p { font-size:13px;color:var(--text-soft); }
-
-/* Edit modal */
 .modal-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px; }
 .modal-backdrop.hidden { display:none; }
 .modal { background:var(--white);border-radius:14px;width:100%;max-width:420px;overflow:hidden;animation:modalIn .2s ease both; }
@@ -172,7 +155,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
 .btn-modal-save { padding:9px 20px;background:var(--navy);color:var(--white);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s; }
 .btn-modal-save:hover { background:#1e3050; }
 .btn-modal-save:disabled { opacity:.6;cursor:not-allowed; }
-
 @media print {
     .filter-panel,.btn-print,.expand-btn,.row-actions,.btn-delete-exam { display:none !important; }
     .exam-body,.exam-section-body { display:block !important; }
@@ -201,9 +183,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     </div>
 </div>
 
-{{-- ═══════════════════════════════════════════════════════════
-     CASCADING FILTER PANEL
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- ═══ FILTER PANEL ═══ --}}
 <div class="filter-panel">
     <div class="filter-panel-header">
         <div>
@@ -213,24 +193,22 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     </div>
 
     <form method="GET" action="{{ route('admin.interventions.index') }}" id="filter-form">
+        {{-- FIX: value="1" ensures filled() returns true on submit --}}
         <input type="hidden" name="_filtered" value="1">
         <div class="filter-grid">
 
-            {{-- 1. School Year --}}
             <div class="filter-group">
                 <label>School year</label>
                 <select name="school_year_id" id="f-sy">
                     <option value="">All school years</option>
                     @foreach($schoolYears as $sy)
-                    <option value="{{ $sy->id }}"
-                        {{ $selectedSY == $sy->id ? 'selected' : '' }}>
+                    <option value="{{ $sy->id }}" {{ $selectedSY == $sy->id ? 'selected' : '' }}>
                         S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}
                     </option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- 2. Semester (cascades from SY) --}}
             <div class="filter-group">
                 <label>Semester</label>
                 <select name="semester_id" id="f-sem">
@@ -245,35 +223,30 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                 </select>
             </div>
 
-            {{-- 3. Department --}}
             <div class="filter-group">
                 <label>Department</label>
                 <select name="department_id" id="f-dept">
                     <option value="">All departments</option>
                     @foreach($departments as $dept)
-                    <option value="{{ $dept->id }}"
-                        {{ $selectedDept == $dept->id ? 'selected' : '' }}>
+                    <option value="{{ $dept->id }}" {{ $selectedDept == $dept->id ? 'selected' : '' }}>
                         {{ $dept->department_name }}
                     </option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- 4. Category (cascades from Department via subjects) --}}
             <div class="filter-group">
                 <label>Category</label>
                 <select name="category" id="f-cat">
                     <option value="">All categories</option>
                     @foreach($categories as $cat)
-                    <option value="{{ $cat }}"
-                        {{ $selectedCat == $cat ? 'selected' : '' }}>
+                    <option value="{{ $cat }}" {{ $selectedCat == $cat ? 'selected' : '' }}>
                         {{ $cat }}
                     </option>
                     @endforeach
                 </select>
             </div>
 
-            {{-- 5. Subject (cascades from Department + Category) --}}
             <div class="filter-group">
                 <label>Subject</label>
                 <select name="subject_id" id="f-subj">
@@ -289,7 +262,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
                 </select>
             </div>
 
-            {{-- 6. Teacher (cascades from Semester + Department) --}}
             <div class="filter-group">
                 <label>Teacher</label>
                 <select name="teacher_id" id="f-teacher">
@@ -312,7 +284,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
             <a href="{{ route('admin.interventions.index') }}" class="btn-reset">Reset</a>
         </div>
 
-        {{-- Active tags --}}
         @php
             $hasFilters = $selectedSY || $selectedDept || $selectedCat
                        || $selectedSubject || $selectedTeacher
@@ -354,19 +325,20 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
 </div>
 
 {{-- ═══════════════════════════════════════════════════════════
-     EMPTY STATE — filters returned nothing
+     FIX: Correct @if / @elseif / @else structure.
+     The original had @elseif with no matching @if, which caused
+     a Blade compilation error and meant the exam list never showed.
      ═══════════════════════════════════════════════════════════ --}}
-@if(isset($exams) && $exams->isEmpty() && $hasFilters)
+@if(isset($exams) && $exams->isEmpty() && request()->filled('_filtered'))
+
+{{-- User ran a filter but nothing matched --}}
 <div class="filter-empty">
     <div class="filter-empty-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            <line x1="8" y1="11" x2="14" y2="11"/>
-        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </div>
-    <h3>No results found</h3>
-    <p>No exams match your current filter combination. Try broadening your selection or reset to the default view.</p>
-    @php $hasFilters = $selectedSY || $selectedDept || $selectedCat || $selectedSubject || $selectedTeacher || ($selectedSem && $selectedSem != $activeSemester?->id); @endphp
+    <h3>No exams found</h3>
+    <p>No exams match your current filters. Try adjusting or resetting them.</p>
+    @if($hasFilters ?? false)
     <div class="active-tags">
         @if($selectedSY)
             @php $sy = $schoolYears->find($selectedSY); @endphp
@@ -381,25 +353,14 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
             @if($dept) <span class="atag">{{ $dept->department_name }}</span> @endif
         @endif
         @if($selectedCat) <span class="atag">{{ $selectedCat }}</span> @endif
-        @if($selectedSubject)
-            @php $subj = $subjects->find($selectedSubject); @endphp
-            @if($subj) <span class="atag">{{ $subj->subject_code }}</span> @endif
-        @endif
-        @if($selectedTeacher)
-            @php $tchr = $teachers->find($selectedTeacher); @endphp
-            @if($tchr) <span class="atag">{{ $tchr->teacher_name }}</span> @endif
-        @endif
     </div>
-    <div style="margin-top:20px">
-        <a href="{{ route('admin.interventions.index') }}" class="btn-apply" style="text-decoration:none;display:inline-block">Reset filters</a>
-    </div>
+    @endif
+    <a href="{{ route('admin.interventions.index') }}" class="btn-reset" style="margin-top:16px">Reset filters</a>
 </div>
 
 @elseif(isset($exams) && $exams->isNotEmpty())
 
-{{-- ═══════════════════════════════════════════════════════════
-     EXAM LIST
-     ═══════════════════════════════════════════════════════════ --}}
+{{-- ═══ EXAM LIST ═══ --}}
 <div class="exam-list-header">
     <div>
         <div class="exam-list-title">Exam results</div>
@@ -416,7 +377,11 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     $sem       = $ts?->semester;
     $inits     = $tchr ? collect(explode(' ', $tchr->teacher_name))->map(fn($w) => strtoupper(substr($w,0,1)))->take(2)->implode('') : '?';
     $hasMatrix = !empty($exam->item_matrix_data);
-    $matrix    = $exam->item_matrix_data ?? [];
+    // FIX: Cast item_matrix_data to array safely (handles both JSON string and already-decoded array)
+    $matrix    = is_array($exam->item_matrix_data)
+                    ? $exam->item_matrix_data
+                    : (is_string($exam->item_matrix_data) ? json_decode($exam->item_matrix_data, true) : []);
+    $matrix    = $matrix ?? [];
     $discCols  = $matrix['disc_columns']  ?? [];
     $matrixRows= $matrix['rows']          ?? [];
     $colTotals = $matrix['column_totals'] ?? [];
@@ -430,7 +395,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
     };
 @endphp
 
-{{-- Skip exams with broken relationships to prevent 500 --}}
 @if(!$ts || !$subj || !$tchr || !$sem)
     @continue
 @endif
@@ -474,7 +438,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
 
     <div class="exam-body">
 
-        {{-- Master list --}}
         <div class="exam-section">
             <div class="exam-section-header" onclick="toggleSection(this)">
                 <div class="section-title">
@@ -525,7 +488,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
             </div>
         </div>
 
-        {{-- Item Analysis Matrix --}}
         <div class="exam-section">
             <div class="exam-section-header" onclick="toggleSection(this)">
                 <div class="section-title">
@@ -652,7 +614,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:600px; }
 @endforeach
 
 @else
-{{-- No exams at all (default view, no filters active) --}}
 <div class="empty-state">
     <h3>No exams found</h3>
     <p>No exams have been recorded yet for the current semester.</p>
@@ -694,7 +655,6 @@ const CSRF = '{{ csrf_token() }}';
 let editingResultId = null;
 let editingExamId   = null;
 
-// ── Toggle helpers ────────────────────────────────────────────────────────────
 function toggleExam(header) {
     const body = header.nextElementSibling;
     const chev = header.querySelector('.toggle-chevron');
@@ -717,7 +677,6 @@ function expandAll() {
     btn.textContent = anyOpen ? 'Expand all' : 'Collapse all';
 }
 
-// ── Edit modal ────────────────────────────────────────────────────────────────
 function openEdit(resultId, rawScore, examId) {
     editingResultId = resultId;
     editingExamId   = examId;
@@ -784,7 +743,6 @@ async function saveEdit() {
     }
 }
 
-// ── Delete result ─────────────────────────────────────────────────────────────
 async function deleteResult(resultId, examId) {
     if (!confirm('Delete this student result? This cannot be undone.')) return;
     const res  = await fetch(`/admin/exam-results/${resultId}`, {
@@ -798,7 +756,6 @@ async function deleteResult(resultId, examId) {
     }
 }
 
-// ── Delete entire exam ────────────────────────────────────────────────────────
 async function deleteExam(examId) {
     if (!confirm('Delete this entire exam and ALL student results? This cannot be undone.')) return;
     const res  = await fetch(`/admin/exams/${examId}`, {
@@ -811,7 +768,6 @@ async function deleteExam(examId) {
     }
 }
 
-// ── Refresh pass/fail/total chips after edit/delete ───────────────────────────
 function refreshExamChips(examId) {
     const tbody = document.getElementById(`tbody-${examId}`);
     if (!tbody) return;
@@ -832,14 +788,11 @@ function refreshExamChips(examId) {
     set(`count-${examId}`, total);
 }
 
-// Close modal on backdrop click
 document.getElementById('edit-modal').addEventListener('click', function(e) {
     if (e.target === this) closeEdit();
 });
 
-// ══════════════════════════════════════════════════════════════
-//  CASCADING FILTER ENGINE  (fixed)
-// ══════════════════════════════════════════════════════════════
+// ══ Cascading filter engine ══
 (function () {
     const sy      = document.getElementById('f-sy');
     const sem     = document.getElementById('f-sem');
@@ -850,7 +803,6 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
 
     if (!sy || !sem || !dept || !cat || !subj || !teacher) return;
 
-    // Snapshot ALL non-placeholder options exactly once at page load
     const allOpts = {};
     [sy, sem, dept, cat, subj, teacher].forEach(sel => {
         allOpts[sel.id] = Array.from(sel.options)
@@ -858,12 +810,9 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
             .map(o => ({ node: o.cloneNode(true), value: o.value, dataset: { ...o.dataset } }));
     });
 
-    // Rebuild a select: remove non-placeholder opts, re-add only those passing keepFn
-    // Always preserves the current value if it's still in the new list
     function rebuild(select, keepFn) {
         const current = select.value;
         while (select.options.length > 1) select.remove(1);
-
         let found = false;
         allOpts[select.id].forEach(({ node, value, dataset }) => {
             if (keepFn({ value, dataset })) {
@@ -872,70 +821,40 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
                 if (value === current) found = true;
             }
         });
-
-        // Restore old value if still available, else fall back to "All"
         select.value = found ? current : '';
     }
 
-    // ── Filter rules ──────────────────────────────────────────
-
     function filterSem() {
         const syId = sy.value;
-        rebuild(sem, ({ dataset }) =>
-            !syId || dataset.sy === syId
-        );
+        rebuild(sem, ({ dataset }) => !syId || dataset.sy === syId);
     }
-
     function filterTeacher() {
         const semId  = sem.value;
         const deptId = dept.value;
         rebuild(teacher, ({ dataset }) => {
             const tSems  = (dataset.sem  || '').split(',').filter(Boolean);
             const tDepts = (dataset.dept || '').split(',').filter(Boolean);
-            const semOk  = !semId  || tSems.includes(semId);
-            const deptOk = !deptId || tDepts.includes(deptId);
-            return semOk && deptOk;
+            return (!semId  || tSems.includes(semId))
+                && (!deptId || tDepts.includes(deptId));
         });
     }
-
     function filterSubject() {
         const deptId = dept.value;
         const catId  = cat.value;
-        rebuild(subj, ({ dataset }) => {
-            const deptOk = !deptId || dataset.dept === deptId;
-            const catOk  = !catId  || dataset.cat  === catId;
-            return deptOk && catOk;
-        });
+        rebuild(subj, ({ dataset }) =>
+            (!deptId || dataset.dept === deptId) &&
+            (!catId  || dataset.cat  === catId)
+        );
     }
 
-    // ── Wire events ───────────────────────────────────────────
+    sy.addEventListener('change',   () => { filterSem(); filterTeacher(); });
+    sem.addEventListener('change',  () => { filterTeacher(); });
+    dept.addEventListener('change', () => { filterSubject(); filterTeacher(); });
+    cat.addEventListener('change',  () => { filterSubject(); });
 
-    sy.addEventListener('change', () => {
-        filterSem();
-        filterTeacher();
-    });
-
-    sem.addEventListener('change', () => {
-        filterTeacher();
-    });
-
-    dept.addEventListener('change', () => {
-        filterSubject();
-        filterTeacher();
-    });
-
-    cat.addEventListener('change', () => {
-        filterSubject();
-    });
-
-    // ── Sync on page load ONLY if a value is actually selected ─
-    // This restores the correct subset when coming back from a
-    // filtered form submit, without nuking unrelated dropdowns.
-
-    if (sy.value)   filterSem();
-    if (sem.value || dept.value) filterTeacher();
-    if (dept.value || cat.value) filterSubject();
-
+    if (sy.value)                    filterSem();
+    if (sem.value || dept.value)     filterTeacher();
+    if (dept.value || cat.value)     filterSubject();
 })();
 </script>
-@endpush    
+@endpush

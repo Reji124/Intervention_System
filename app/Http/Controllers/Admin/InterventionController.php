@@ -1,7 +1,5 @@
 <?php
 
-// app/Http/Controllers/Admin/InterventionController.php
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
@@ -20,67 +18,86 @@ class InterventionController extends Controller
 {
     public function index(Request $request)
     {
+        $schoolYears    = collect();
+        $semesters      = collect();
+        $departments    = collect();
+        $subjects       = collect();
+        $teachers       = collect();
+        $categories     = collect();
+        $exams          = collect();
+        $activeSemester = null;
+        $totalFailing   = 0;
+        $totalPassing   = 0;
+
+        $selectedSY      = $request->input('school_year_id');
+        $selectedSem     = $request->input('semester_id');
+        $selectedDept    = $request->input('department_id');
+        $selectedCat     = $request->input('category');
+        $selectedSubject = $request->input('subject_id');
+        $selectedTeacher = $request->input('teacher_id');
+
+        // filled() returns false for empty strings, has() does not.
+        $isFilteredRequest = $request->filled('_filtered');
+
         try {
             $schoolYears = SchoolYear::with('semesters')->orderByDesc('year_start')->get();
             $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
             $departments = Department::orderBy('department_name')->get();
             $subjects    = Subject::with('department')->orderBy('subject_code')->get();
+            $teachers    = Teacher::with(['teacherSubjects.subject', 'teacherSubjects.semester'])
+                                  ->orderBy('teacher_name')
+                                  ->get();
 
-            // Teachers need teacherSubjects for the cascading filter data-attributes
-            $teachers = Teacher::with(['teacherSubjects.subject', 'teacherSubjects.semester'])
-                                ->orderBy('teacher_name')
-                                ->get();
-
-            // Categories are plain strings from subjects.category
             $categories = DB::table('subjects')
-                            ->select('category')
-                            ->distinct()
+                            ->select(DB::raw('DISTINCT category'))
                             ->whereNotNull('category')
                             ->where('category', '!=', '')
                             ->orderBy('category')
                             ->pluck('category');
 
-            // Active semester = the one marked active, fallback to latest
+            // Prefer is_active flag; fall back to latest if none is flagged.
             $activeSemester = Semester::with('schoolYear')
                                 ->where('is_active', true)
-                                ->latest()
                                 ->first()
-                ?? Semester::with('schoolYear')->latest()->first();
+                              ?? Semester::with('schoolYear')->latest()->first();
 
-            $selectedSY      = $request->input('school_year_id');
-            $selectedSem     = $request->input('semester_id',
-                                    $request->has('_filtered') ? null : $activeSemester?->id);
-            $selectedDept    = $request->input('department_id');
-            $selectedCat     = $request->input('category');
-            $selectedSubject = $request->input('subject_id');
-            $selectedTeacher = $request->input('teacher_id');
+            // Only apply the default semester on a true first load —
+            // not when the user has explicitly submitted the filter form.
+            if (!$isFilteredRequest && !$selectedSem && !$selectedSY) {
+                $selectedSem = $activeSemester?->id;
+            }
 
-            $examQuery = Exam::with([
+            $exams = Exam::with([
                     'teacherSubject.teacher',
                     'teacherSubject.subject.department',
                     'teacherSubject.semester.schoolYear',
+                    // Eager-load examResults WITH student so the model's
+                    // computed attributes (total_students, pass_count, etc.)
+                    // work off the already-loaded collection and don't fire
+                    // extra queries per exam.
                     'examResults.student',
                 ])
                 ->whereHas('teacherSubject', function ($q) use (
                     $selectedSY, $selectedSem, $selectedDept,
                     $selectedCat, $selectedSubject, $selectedTeacher
                 ) {
-                    // Semester filter takes priority over SY-only filter
                     if ($selectedSem) {
                         $q->where('teacher_subjects.semester_id', $selectedSem);
                     } elseif ($selectedSY) {
                         $q->whereHas('semester', fn($s) =>
-                            $s->where('semesters.school_year_id', $selectedSY));
+                            $s->where('school_year_id', $selectedSY));
                     }
 
                     if ($selectedDept) {
                         $q->whereHas('subject', fn($s) =>
-                            $s->where('subjects.department_id', $selectedDept));
+                            $s->where('department_id', $selectedDept));
                     }
 
+                    // PostgreSQL string comparison is case-sensitive;
+                    // LOWER() on both sides makes category matching safe.
                     if ($selectedCat) {
                         $q->whereHas('subject', fn($s) =>
-                            $s->where('subjects.category', $selectedCat));
+                            $s->whereRaw('LOWER(category) = LOWER(?)', [$selectedCat]));
                     }
 
                     if ($selectedSubject) {
@@ -91,51 +108,29 @@ class InterventionController extends Controller
                         $q->where('teacher_subjects.teacher_id', $selectedTeacher);
                     }
                 })
-                ->orderByDesc('created_at');
+                ->orderByDesc('created_at')
+                ->get()
+                // Drop any exams with broken relationships so the view
+                // never gets a null teacherSubject / subject / teacher / semester.
+                ->filter(fn($exam) =>
+                    $exam->teacherSubject &&
+                    $exam->teacherSubject->subject &&
+                    $exam->teacherSubject->teacher &&
+                    $exam->teacherSubject->semester
+                )
+                ->values();
 
-            $exams = $examQuery->get()->map(function ($exam) {
-                // Guard against missing relationship
-                if (!$exam->teacherSubject || !$exam->teacherSubject->subject) {
-                    return null;
-                }
-
-                $results              = $exam->examResults ?? collect();
-                $exam->total_students = $results->count();
-                $exam->pass_count     = $results->where('remark', 'pass')->count();
-                $exam->fail_count     = $results->where('remark', 'fail')->count();
-                $exam->pass_rate      = $exam->total_students > 0
-                    ? round(($exam->pass_count / $exam->total_students) * 100) : 0;
-
-                return $exam;
-            })->filter()->values(); // remove any nulls from broken relationships
-
-            // These reflect ALL records, not just filtered ones
-            $totalFailing = ExamResult::where('remark', 'fail')->count();
-            $totalPassing = ExamResult::where('remark', 'pass')->count();
+            // Scope the header pills to only what's visible on screen.
+            $examIds      = $exams->pluck('id');
+            $totalFailing = ExamResult::whereIn('exam_id', $examIds)->where('remark', 'fail')->count();
+            $totalPassing = ExamResult::whereIn('exam_id', $examIds)->where('remark', 'pass')->count();
 
         } catch (\Exception $e) {
-            // Never show a 500 — return empty state with error notice
-            $exams        = collect();
-            $totalFailing = 0;
-            $totalPassing = 0;
-
-            // Keep filter dropdowns working even on error
-            $schoolYears    = $schoolYears    ?? collect();
-            $semesters      = $semesters      ?? collect();
-            $departments    = $departments    ?? collect();
-            $subjects       = $subjects       ?? collect();
-            $teachers       = $teachers       ?? collect();
-            $categories     = $categories     ?? collect();
-            $activeSemester = $activeSemester ?? null;
-
-            $selectedSY      = $request->input('school_year_id');
-            $selectedSem     = $request->input('semester_id');
-            $selectedDept    = $request->input('department_id');
-            $selectedCat     = $request->input('category');
-            $selectedSubject = $request->input('subject_id');
-            $selectedTeacher = $request->input('teacher_id');
-
-            Log::error('InterventionController@index failed: ' . $e->getMessage(), [
+            Log::error('InterventionController@index: ' . $e->getMessage(), [
+                'filters' => $request->only([
+                    'school_year_id', 'semester_id', 'department_id',
+                    'category', 'subject_id', 'teacher_id',
+                ]),
                 'trace' => $e->getTraceAsString(),
             ]);
         }
@@ -149,7 +144,6 @@ class InterventionController extends Controller
         ));
     }
 
-    // ── Update a single exam result ───────────────────────────────────────────
     public function updateResult(Request $request, ExamResult $examResult)
     {
         $request->validate([
@@ -176,14 +170,12 @@ class InterventionController extends Controller
         ]);
     }
 
-    // ── Delete a single exam result ───────────────────────────────────────────
     public function destroyResult(ExamResult $examResult)
     {
         $examResult->delete();
         return response()->json(['success' => true]);
     }
 
-    // ── Delete an entire exam + all its results ───────────────────────────────
     public function destroyExam(Exam $exam)
     {
         $exam->examResults()->delete();
