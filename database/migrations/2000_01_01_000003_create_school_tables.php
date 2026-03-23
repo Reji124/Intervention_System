@@ -25,12 +25,12 @@ return new class extends Migration {
         });
 
         Schema::create('semesters', function (Blueprint $table) {
-            $table->boolean('is_active')->default(false)->after('semester_name');
             $table->id();
             $table->foreignId('school_year_id')->constrained()->cascadeOnDelete();
-            $table->string('semester_name'); // '1st' or '2nd'
+            $table->string('semester_name');
+            $table->boolean('is_active')->default(false);
             $table->timestamps();
-        });
+        }); 
 
         Schema::create('departments', function (Blueprint $table) {
             $table->id();

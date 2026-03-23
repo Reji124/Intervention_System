@@ -61,6 +61,7 @@ class DatabaseSeeder extends Seeder
         $semester = Semester::create([
             'school_year_id' => $schoolYear->id,
             'semester_name'  => '2nd',
+            'is_active'      => true,
         ]);
 
         $ts = TeacherSubject::create([
