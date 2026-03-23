@@ -838,7 +838,7 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
 });
 
 // ══════════════════════════════════════════════════════════════
-//  CASCADING FILTER ENGINE
+//  CASCADING FILTER ENGINE  (fixed)
 // ══════════════════════════════════════════════════════════════
 (function () {
     const sy      = document.getElementById('f-sy');
@@ -850,71 +850,92 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
 
     if (!sy || !sem || !dept || !cat || !subj || !teacher) return;
 
-    // Snapshot all non-placeholder options on page load
+    // Snapshot ALL non-placeholder options exactly once at page load
     const allOpts = {};
     [sy, sem, dept, cat, subj, teacher].forEach(sel => {
         allOpts[sel.id] = Array.from(sel.options)
             .filter(o => o.value !== '')
-            .map(o => o.cloneNode(true));
+            .map(o => ({ node: o.cloneNode(true), value: o.value, dataset: { ...o.dataset } }));
     });
 
+    // Rebuild a select: remove non-placeholder opts, re-add only those passing keepFn
+    // Always preserves the current value if it's still in the new list
     function rebuild(select, keepFn) {
         const current = select.value;
         while (select.options.length > 1) select.remove(1);
-        allOpts[select.id].forEach(o => {
-            if (keepFn(o)) select.appendChild(o.cloneNode(true));
+
+        let found = false;
+        allOpts[select.id].forEach(({ node, value, dataset }) => {
+            if (keepFn({ value, dataset })) {
+                const clone = node.cloneNode(true);
+                select.appendChild(clone);
+                if (value === current) found = true;
+            }
         });
-        select.value = current;
-        if (select.value !== current) select.value = '';
+
+        // Restore old value if still available, else fall back to "All"
+        select.value = found ? current : '';
     }
 
-    function applySY() {
+    // ── Filter rules ──────────────────────────────────────────
+
+    function filterSem() {
         const syId = sy.value;
-        rebuild(sem, o => !syId || o.dataset.sy === syId);
+        rebuild(sem, ({ dataset }) =>
+            !syId || dataset.sy === syId
+        );
     }
 
-    function applySem() {
-        const semId = sem.value;
+    function filterTeacher() {
+        const semId  = sem.value;
         const deptId = dept.value;
-        rebuild(teacher, o => {
-            const tSems  = (o.dataset.sem  || '').split(',').filter(Boolean);
-            const tDepts = (o.dataset.dept || '').split(',').filter(Boolean);
+        rebuild(teacher, ({ dataset }) => {
+            const tSems  = (dataset.sem  || '').split(',').filter(Boolean);
+            const tDepts = (dataset.dept || '').split(',').filter(Boolean);
             const semOk  = !semId  || tSems.includes(semId);
             const deptOk = !deptId || tDepts.includes(deptId);
             return semOk && deptOk;
         });
     }
 
-    function applyDept() {
-        const deptId = dept.value;
-        rebuild(subj, o => {
-            const deptOk = !deptId || o.dataset.dept === deptId;
-            const catOk  = !cat.value || o.dataset.cat === cat.value;
-            return deptOk && catOk;
-        });
-        applySem();
-    }
-
-    function applyCat() {
+    function filterSubject() {
         const deptId = dept.value;
         const catId  = cat.value;
-        rebuild(subj, o => {
-            const deptOk = !deptId || o.dataset.dept === deptId;
-            const catOk  = !catId  || o.dataset.cat  === catId;
+        rebuild(subj, ({ dataset }) => {
+            const deptOk = !deptId || dataset.dept === deptId;
+            const catOk  = !catId  || dataset.cat  === catId;
             return deptOk && catOk;
         });
     }
 
-    sy.addEventListener('change',      () => { applySY(); applySem(); applyDept(); });
-    sem.addEventListener('change',     () => { applySem(); });
-    dept.addEventListener('change',    () => { applyDept(); });
-    cat.addEventListener('change',     () => { applyCat(); });
+    // ── Wire events ───────────────────────────────────────────
 
-    // Sync on page load for restored query-string values
-    applySY();
-    applySem();
-    applyDept();
-    applyCat();
+    sy.addEventListener('change', () => {
+        filterSem();
+        filterTeacher();
+    });
+
+    sem.addEventListener('change', () => {
+        filterTeacher();
+    });
+
+    dept.addEventListener('change', () => {
+        filterSubject();
+        filterTeacher();
+    });
+
+    cat.addEventListener('change', () => {
+        filterSubject();
+    });
+
+    // ── Sync on page load ONLY if a value is actually selected ─
+    // This restores the correct subset when coming back from a
+    // filtered form submit, without nuking unrelated dropdowns.
+
+    if (sy.value)   filterSem();
+    if (sem.value || dept.value) filterTeacher();
+    if (dept.value || cat.value) filterSubject();
+
 })();
 </script>
 @endpush    
