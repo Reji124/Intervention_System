@@ -57,11 +57,13 @@ class InterventionController extends Controller
                             ->orderBy('category')
                             ->pluck('category');
 
-            // ── Active semester ────────────────────────────────────────────────
+            // Replace the existing activeSemester block with this:
             $activeSemester = Semester::with('schoolYear')
-                                ->where('is_active', true)
-                                ->first()
-                              ?? Semester::with('schoolYear')->latest()->first();
+                    ->where('is_active', true)
+                    ->first()
+                 ?? Semester::with('schoolYear')
+                    ->latest('id')
+                    ->first();
 
             // Apply default semester only on a genuine first load.
             if (!$isFilteredRequest && !$selectedSem && !$selectedSY) {
