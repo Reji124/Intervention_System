@@ -1,9 +1,10 @@
 FROM php:8.3-fpm
 
-# Install system dependencies
+# Install system dependencies + Python
 RUN apt-get update && apt-get install -y \
     git curl libpng-dev libonig-dev libxml2-dev zip unzip \
     libzip-dev libfreetype6-dev libjpeg62-turbo-dev libpq-dev \
+    python3 python3-pip \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -26,6 +27,9 @@ RUN mkdir -p /var/www/storage/framework/{sessions,views,cache} \
 
 RUN composer install --no-dev --optimize-autoloader
 RUN npm install && npm run build
+
+# Install Python dependencies for PDF parsing
+RUN pip3 install pdfplumber --break-system-packages
 
 RUN cp .env.example .env && php artisan key:generate --force
 

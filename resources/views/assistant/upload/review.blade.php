@@ -180,7 +180,24 @@
     </span>
 </div>
 @endif
-
+{{-- Item Matrix Status Banner --}}
+@if(!empty($matrixData) && ($matrixData['total_items'] ?? 0) > 0)
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#f0faf7;border:1px solid #9fe1cb;border-radius:8px;font-size:13px;color:var(--teal);margin-bottom:16px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>Item analysis matrix was read successfully — <strong>{{ $matrixData['total_items'] }}</strong> items detected.</span>
+    </div>
+@else
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff8f0;border:1px solid #f0c84a;border-radius:8px;font-size:13px;color:var(--amber);margin-bottom:16px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>
+            @if(session('item_matrix_parsed') === null && request()->has('item_matrix'))
+                Item analysis PDF was uploaded but <strong>could not be parsed</strong> — the matrix will not be saved. You can still save the student results.
+            @else
+                No item analysis PDF was uploaded — matrix will be skipped.
+            @endif
+        </span>
+    </div>
+@endif
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
 {{-- Item Analysis Matrix                                                   --}}
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
