@@ -26,10 +26,7 @@
     <div class="field">
         <label>Course <span class="req">*</span></label>
         <select name="course_id" id="course_id" required>
-            {{-- Populated by JS --}}
-            <option value="{{ $subject->course_id }}" selected>
-                {{ $subject->course->course_name }}
-            </option>
+            <option value="">— Select Department first —</option>
         </select>
         @error('course_id')<p class="field-error">{{ $message }}</p>@enderror
     </div>
@@ -52,6 +49,15 @@
         @error('subject_code')<p class="field-error">{{ $message }}</p>@enderror
     </div>
 
+    {{-- Subject Name --}}
+    <div class="field">
+        <label>Subject Name <span class="req">*</span></label>
+        <input type="text" name="subject_name"
+               value="{{ old('subject_name', $subject->subject_name) }}"
+               placeholder="e.g. Introduction to Programming" required>
+        @error('subject_name')<p class="field-error">{{ $message }}</p>@enderror
+    </div>
+
     {{-- Year Level --}}
     <div class="field">
         <label>Year Level <span class="req">*</span></label>
@@ -67,15 +73,6 @@
         @error('year_level')<p class="field-error">{{ $message }}</p>@enderror
     </div>
 
-    {{-- Subject Name --}}
-    <div class="field">
-        <label>Subject Name <span class="req">*</span></label>
-        <input type="text" name="subject_name"
-               value="{{ old('subject_name', $subject->subject_name) }}"
-               placeholder="e.g. Introduction to Programming" required>
-        @error('subject_name')<p class="field-error">{{ $message }}</p>@enderror
-    </div>
-
     <div class="form-actions">
         <a href="{{ route('admin.subjects.index') }}" class="btn btn-secondary">Cancel</a>
         <button type="submit" class="btn btn-primary">Update</button>
@@ -84,23 +81,32 @@
 </div>
 
 <script>
-const deptSelect   = document.getElementById('department_id');
-const courseSelect = document.getElementById('course_id');
+const deptSelect     = document.getElementById('department_id');
+const courseSelect   = document.getElementById('course_id');
 const currentCourseId = "{{ old('course_id', $subject->course_id) }}";
 
-async function loadCourses(deptId) {
-    courseSelect.innerHTML = '<option value="">— Loading… —</option>';
-    if (!deptId) {
+// Same inline map approach as create.blade.php — no fetch needed
+const courseMap = {
+    @foreach($departments as $dept)
+    "{{ $dept->id }}": [
+        @foreach($dept->courses as $course)
+        { id: "{{ $course->id }}", name: "{{ $course->course_name }}" },
+        @endforeach
+    ],
+    @endforeach
+};
+
+function loadCourses(deptId) {
+    const courses = courseMap[deptId] ?? [];
+    if (!deptId || courses.length === 0) {
         courseSelect.innerHTML = '<option value="">— Select Department first —</option>';
         return;
     }
-    const res = await fetch(`/admin/departments/${deptId}/courses`);
-    const courses = await res.json();
     courseSelect.innerHTML = '<option value="">— Select Course —</option>';
     courses.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        opt.textContent = c.course_name;
+        opt.textContent = c.name;
         if (c.id == currentCourseId) opt.selected = true;
         courseSelect.appendChild(opt);
     });
@@ -108,7 +114,7 @@ async function loadCourses(deptId) {
 
 deptSelect.addEventListener('change', () => loadCourses(deptSelect.value));
 
-// Load courses for the current department on page load
+// Populate courses immediately on page load
 loadCourses(deptSelect.value);
 </script>
 @endsection
