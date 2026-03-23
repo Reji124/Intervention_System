@@ -14,6 +14,7 @@ use App\Services\ItemMatrixParser;
 use App\Services\MasterListParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PdfUploadController extends Controller
 {
@@ -50,7 +51,7 @@ class PdfUploadController extends Controller
         $parser = new MasterListParser();
         $rows   = $parser->parse(storage_path("app/private/{$masterPath}"));
 
-        \Illuminate\Support\Facades\Storage::disk('local')->delete($masterPath);
+        Storage::disk('local')->delete($masterPath);
 
         if (empty($rows)) {
             return back()->withInput()
@@ -89,7 +90,6 @@ class PdfUploadController extends Controller
         $matrixData = null;
 
         if ($request->hasFile('item_matrix')) {
-            // Store temporarily just for parsing, then delete
             $matrixPath = $request->file('item_matrix')
                 ->store('temp/item_matrices', 'local');
 
@@ -98,10 +98,8 @@ class PdfUploadController extends Controller
                 storage_path("app/private/{$matrixPath}")
             );
 
-            // Delete the temp file immediately after parsing
-            \Illuminate\Support\Facades\Storage::disk('local')->delete($matrixPath);
+            Storage::disk('local')->delete($matrixPath);
 
-            // Store parsed data in session so store() doesn't need to re-parse
             session(['item_matrix_parsed' => $matrixData]);
         } else {
             session()->forget('item_matrix_parsed');
@@ -114,7 +112,7 @@ class PdfUploadController extends Controller
         $context = [
             'teacher_subject_id' => $ts->id,
             'exam_type'          => $request->exam_type,
-            'item_matrix_path'   => null, // no longer storing the file
+            'item_matrix_path'   => null,
             'subject_code'       => $ts->subject->subject_code,
             'subject_name'       => $ts->subject->subject_name,
             'section'            => $ts->section,
@@ -145,16 +143,15 @@ class PdfUploadController extends Controller
             'students.*.remark'       => 'required|in:pass,fail',
         ]);
 
-        DB::transaction(function () use ($request) {
+        // Pull session data BEFORE the transaction
+        $parsed     = session('item_matrix_parsed');
+        $matrixJson = $parsed ? $this->buildMatrixJson($parsed) : null;
+        session()->forget('item_matrix_parsed');
 
-            // ── Get matrix data from session (parsed in previous step) ────────
-            $matrixJson = null;
-            $parsed     = session('item_matrix_parsed');
+        $saved   = 0;
+        $skipped = 0;
 
-            if ($parsed) {
-                $matrixJson = $this->buildMatrixJson($parsed);
-                session()->forget('item_matrix_parsed');
-            }
+        DB::transaction(function () use ($request, $matrixJson, &$saved, &$skipped) {
 
             $exam = Exam::firstOrCreate(
                 [
@@ -174,8 +171,6 @@ class PdfUploadController extends Controller
                 ]);
             }
 
-            $saved = $skipped = 0;
-
             foreach ($request->students as $row) {
                 $name = trim($row['student_name'] ?? '');
                 $code = trim($row['student_code'] ?? '');
@@ -187,7 +182,10 @@ class PdfUploadController extends Controller
 
                 $student = Student::firstOrCreate(
                     ['student_code' => $code],
-                    ['student_name' => $name]
+                    [
+                        'student_name'       => $name,
+                        'teacher_subject_id' => $request->teacher_subject_id,
+                    ]
                 );
 
                 if (strtolower(trim($student->student_name)) !== strtolower($name)) {
@@ -210,12 +208,12 @@ class PdfUploadController extends Controller
 
                 $saved++;
             }
-
-            session()->flash('success',
-                "Saved {$saved} student result(s)." .
-                ($skipped > 0 ? " {$skipped} skipped (already exist or missing info)." : '')
-            );
         });
+
+        session()->flash('success',
+            "Saved {$saved} student result(s)." .
+            ($skipped > 0 ? " {$skipped} skipped (already exist or missing info)." : '')
+        );
 
         return redirect()->route('assistant.dashboard');
     }
