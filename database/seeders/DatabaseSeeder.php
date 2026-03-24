@@ -19,75 +19,104 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'name'     => 'Admin',
-            'email'    => 'admin@school.com',
-            'password' => bcrypt('password'),
-            'role'     => 'admin',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@school.com'],
+            [
+                'name'     => 'Admin',
+                'password' => bcrypt('password'),
+                'role'     => 'admin',
+            ]
+        );
 
-        User::create([
-            'name'     => 'Maria Assistant',
-            'email'    => 'assistant@school.com',
-            'password' => bcrypt('password'),
-            'role'     => 'assistant',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'assistant@school.com'],
+            [
+                'name'     => 'Maria Assistant',
+                'password' => bcrypt('password'),
+                'role'     => 'assistant',
+            ]
+        );
 
-        $teacher = Teacher::create([
-            'teacher_name' => 'Juan dela Cruz',
-        ]);
+        $teacher = Teacher::firstOrCreate(
+            ['teacher_name' => 'Juan dela Cruz']
+        );
 
-        $dept = Department::create(['department_name' => 'BSIT']);
+        $dept = Department::firstOrCreate(
+            ['department_name' => 'BSIT']
+        );
 
-        $course = Course::create([
-            'department_id' => $dept->id,
-            'course_name'   => 'Bachelor of Science in Information Technology',
-        ]);
+        $course = Course::firstOrCreate(
+            [
+                'department_id' => $dept->id,
+                'course_name'   => 'Bachelor of Science in Information Technology',
+            ]
+        );
 
-        $subject = Subject::create([
-            'department_id' => $dept->id,
-            'course_id'     => $course->id,
-            'subject_code'  => 'IT101',
-            'subject_name'  => 'Programming 1',
-            'year_level'    => '1st year',
-            'category'      => 'Major',
-        ]);
+        $subject = Subject::firstOrCreate(
+            ['subject_code' => 'IT101'],
+            [
+                'department_id' => $dept->id,
+                'course_id'     => $course->id,
+                'subject_name'  => 'Programming 1',
+                'year_level'    => '1st year',
+                'category'      => 'Major',
+            ]
+        );
 
-        $schoolYear = SchoolYear::create([
-            'year_start' => 2025,
-            'year_end'   => 2026,
-        ]);
+        $schoolYear = SchoolYear::firstOrCreate(
+            [
+                'year_start' => 2025,
+                'year_end'   => 2026,
+            ]
+        );
 
-        $semester = Semester::create([
-            'school_year_id' => $schoolYear->id,
-            'semester_name'  => '2nd',
-            'is_active'      => true,
-        ]);
+        $semester = Semester::firstOrCreate(
+            [
+                'school_year_id' => $schoolYear->id,
+                'semester_name'  => '2nd',
+            ],
+            ['is_active' => true]
+        );
 
-        $ts = TeacherSubject::create([
-            'teacher_id'  => $teacher->id,
-            'subject_id'  => $subject->id,
-            'semester_id' => $semester->id,
-            'section'     => 'BSIT 1-A',
-        ]);
+        // Ensure is_active is true even if the semester already existed
+        if (!$semester->is_active) {
+            $semester->update(['is_active' => true]);
+        }
 
-        $exam = Exam::create([
-            'teacher_subject_id' => $ts->id,
-            'exam_type'          => 'prelim',
-        ]);
+        $ts = TeacherSubject::firstOrCreate(
+            [
+                'teacher_id'  => $teacher->id,
+                'subject_id'  => $subject->id,
+                'semester_id' => $semester->id,
+                'section'     => 'BSIT 1-A',
+            ]
+        );
 
-        $student = Student::create([
-            'teacher_subject_id' => $ts->id,
-            'student_name'       => 'Maria Santos',
-            'student_code'       => '2024-0001',
-        ]);
+        $exam = Exam::firstOrCreate(
+            [
+                'teacher_subject_id' => $ts->id,
+                'exam_type'          => 'prelim',
+            ]
+        );
 
-        ExamResult::create([
-            'student_id' => $student->id,
-            'exam_id'    => $exam->id,
-            'raw_score'  => 35,
-            'percentage' => 70.00,
-            'remark'     => 'fail',
-        ]);
+        $student = Student::firstOrCreate(
+            ['student_code' => '2024-0001'],
+            [
+                'teacher_subject_id' => $ts->id,
+                'student_name'       => 'Maria Santos',
+            ]
+        );
+
+        ExamResult::firstOrCreate(
+            [
+                'student_id' => $student->id,
+                'exam_id'    => $exam->id,
+            ],
+            [
+                'raw_score'  => 35,
+                'percentage' => 70.00,
+                'remark'     => 'fail',
+            ]
+        );
     }
 }
