@@ -978,7 +978,9 @@ function openNotes(teacherId, teacherName, semesterId) {
 
     // Load existing data from the DOM badge
     const badgeEl = document.getElementById(`status-badge-${teacherId}`);
-    const currentStatus = badgeEl?.className.match(/status-(\S+)/)?.[1] ?? 'no_status';
+    const classes = badgeEl?.className.split(' ') ?? [];
+    const statusClass = classes.find(c => c.startsWith('status-') && c !== 'status-badge');
+    const currentStatus = statusClass ? statusClass.replace('status-', '') : 'no_status';
     setSelectedStatus(currentStatus);
 
     // Load notes from a data attribute we'll set on the btn

@@ -33,6 +33,10 @@ class Teacher extends Model
      */
     public function noteForSemester(?int $semesterId): ?TeacherNote
     {
-        return $this->notes->firstWhere('semester_id', $semesterId);
+        try {
+            return $this->notes->firstWhere('semester_id', $semesterId);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

@@ -116,9 +116,15 @@ class InterventionController extends Controller
 
             // ── Load teacher notes for active semester ─────────────────────────
             $notesSemesterId = $selectedSem ?? $activeSemester?->id;
-            $teacherNotes    = TeacherNote::where('semester_id', $notesSemesterId)
-                ->get()
-                ->keyBy('teacher_id');
+
+            try {
+                $teacherNotes = TeacherNote::where('semester_id', $notesSemesterId)
+                    ->get()
+                    ->keyBy('teacher_id');
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('teacher_notes table not ready: ' . $e->getMessage());
+                $teacherNotes = collect();
+            }
 
             // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
