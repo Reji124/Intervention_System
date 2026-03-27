@@ -13,6 +13,7 @@ use App\Models\TeacherSubject;
 use App\Services\ItemMatrixParser;
 use App\Services\MasterListParser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -148,10 +149,11 @@ class PdfUploadController extends Controller
         $matrixJson = $parsed ? $this->buildMatrixJson($parsed) : null;
         session()->forget('item_matrix_parsed');
 
-        $saved   = 0;
-        $skipped = 0;
+        $saved      = 0;
+        $skipped    = 0;
+        $uploaderId = Auth::id(); // ← capture the assistant's user ID
 
-        DB::transaction(function () use ($request, $matrixJson, &$saved, &$skipped) {
+        DB::transaction(function () use ($request, $matrixJson, $uploaderId, &$saved, &$skipped) {
 
             $exam = Exam::firstOrCreate(
                 [
@@ -161,15 +163,16 @@ class PdfUploadController extends Controller
                 [
                     'item_analysis_path' => null,
                     'item_matrix_data'   => $matrixJson,
+                    'uploaded_by'        => $uploaderId, // ← stamp on first create
                 ]
             );
 
-            // Always overwrite matrix data if we have new parsed data
+            // Always overwrite matrix data and uploader if we have new parsed data
+            $updatePayload = ['uploaded_by' => $uploaderId];
             if ($matrixJson) {
-                $exam->update([
-                    'item_matrix_data' => $matrixJson,
-                ]);
+                $updatePayload['item_matrix_data'] = $matrixJson;
             }
+            $exam->update($updatePayload);
 
             foreach ($request->students as $row) {
                 $name = trim($row['student_name'] ?? '');

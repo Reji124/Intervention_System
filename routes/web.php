@@ -42,10 +42,12 @@ Route::prefix('admin')
             [\App\Http\Controllers\Admin\ProfileController::class, 'destroyAdmin'])
             ->name('profile.admins.destroy');
 
-        // Interventions
+        // Interventions — main view
         Route::get('interventions',
             [\App\Http\Controllers\Admin\InterventionController::class, 'index'])
             ->name('interventions.index');
+
+        // Exam result CRUD
         Route::patch('exam-results/{examResult}',
             [\App\Http\Controllers\Admin\InterventionController::class, 'updateResult'])
             ->name('exam-results.update');
@@ -55,6 +57,21 @@ Route::prefix('admin')
         Route::delete('exams/{exam}',
             [\App\Http\Controllers\Admin\InterventionController::class, 'destroyExam'])
             ->name('exams.destroy');
+
+        // Teacher notes (upsert = create or update)
+        Route::post('teachers/{teacher}/note',
+            [\App\Http\Controllers\Admin\InterventionController::class, 'upsertNote'])
+            ->name('teachers.note.upsert');
+
+        // Mass delete (filtered)
+        Route::delete('interventions/mass-delete',
+            [\App\Http\Controllers\Admin\InterventionController::class, 'massDelete'])
+            ->name('interventions.mass-delete');
+
+        // CSV export (filtered)
+        Route::get('interventions/export',
+            [\App\Http\Controllers\Admin\InterventionController::class, 'exportCsv'])
+            ->name('interventions.export');
 
         Route::post('teachers/{teacher}/assign-subject',
             [\App\Http\Controllers\Admin\TeacherController::class, 'assignSubject'])

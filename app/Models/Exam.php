@@ -11,6 +11,7 @@ class Exam extends Model
         'exam_type',
         'item_analysis_path',
         'item_matrix_data',
+        'uploaded_by',
     ];
 
     protected $casts = [
@@ -34,7 +35,12 @@ class Exam extends Model
         return $this->belongsTo(TeacherSubject::class);
     }
 
-    // ── Computed helpers (used in intervention blades) ────────────────────────
+    public function uploadedBy()
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    // ── Computed helpers ──────────────────────────────────────────────────────
 
     public function getTotalStudentsAttribute(): int
     {

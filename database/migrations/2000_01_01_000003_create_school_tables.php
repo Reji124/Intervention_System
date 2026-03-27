@@ -77,9 +77,13 @@ return new class extends Migration {
         Schema::create('exams', function (Blueprint $table) {
             $table->id();
             $table->foreignId('teacher_subject_id')->constrained()->cascadeOnDelete();
-            $table->string('exam_type'); // 'prelim', 'midterm', 'final'
+            $table->string('exam_type');
             $table->string('item_analysis_path')->nullable();
             $table->json('item_matrix_data')->nullable();
+            $table->foreignId('uploaded_by')          // ← ADD THIS
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->timestamps();
         });
 
@@ -102,8 +106,20 @@ return new class extends Migration {
         });
     }
 
+    Schema::create('teacher_notes', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('semester_id')->nullable()->constrained()->nullOnDelete();
+        $table->string('status')->default('no_status');
+        $table->text('notes')->nullable();
+        $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+        $table->timestamps();
+        $table->unique(['teacher_id', 'semester_id']);
+    });
+
     public function down(): void {
         Schema::dropIfExists('exam_results');
+        Schema::dropIfExists('teacher_notes');
         Schema::dropIfExists('students');
         Schema::dropIfExists('exams');
         Schema::dropIfExists('teacher_subjects');
@@ -113,5 +129,6 @@ return new class extends Migration {
         Schema::dropIfExists('departments');
         Schema::dropIfExists('semesters');
         Schema::dropIfExists('school_years');
+        
     }
 };

@@ -22,4 +22,17 @@ class Teacher extends Model
     {
         return $this->hasMany(TeacherSubject::class);
     }
+
+    public function notes()
+    {
+        return $this->hasMany(TeacherNote::class);
+    }
+
+    /**
+     * Get the note for a specific semester (used in intervention view).
+     */
+    public function noteForSemester(?int $semesterId): ?TeacherNote
+    {
+        return $this->notes->firstWhere('semester_id', $semesterId);
+    }
 }
