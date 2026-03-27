@@ -20,20 +20,42 @@ use Illuminate\Support\Facades\Storage;
 class PdfUploadController extends Controller
 {
     // ── Step 1: Show upload form ──────────────────────────────────────────────
-    public function index()
-    {
-        $teacherSubjects = TeacherSubject::with([
-                'subject',
-                'teacher',
-                'semester.schoolYear',
-            ])
-            ->orderBy('teacher_id')
-            ->get();
+public function index()
+{
+    $schoolYears = \App\Models\SchoolYear::with('semesters')
+        ->orderByDesc('year_start')
+        ->get();
 
-        $activeSemester = Semester::with('schoolYear')->latest()->first();
+    $semesters = \App\Models\Semester::with('schoolYear')
+        ->orderByDesc('id')
+        ->get();
 
-        return view('assistant.upload.index', compact('teacherSubjects', 'activeSemester'));
-    }
+    $subjects = \App\Models\Subject::orderBy('subject_code')->get();
+
+    $teachers = \App\Models\Teacher::orderBy('teacher_name')->get();
+
+    // Still load teacher_subjects so JS can do cascading filtering
+    $teacherSubjects = TeacherSubject::with([
+            'subject',
+            'teacher',
+            'semester.schoolYear',
+        ])
+        ->orderBy('teacher_id')
+        ->get();
+
+    $activeSemester = Semester::with('schoolYear')
+        ->where('is_active', true)->first()
+        ?? Semester::with('schoolYear')->latest('id')->first();
+
+    return view('assistant.upload.index', compact(
+        'schoolYears',
+        'semesters',
+        'subjects',
+        'teachers',
+        'teacherSubjects',
+        'activeSemester',
+    ));
+}
 
     // ── Step 2: Parse PDFs → show review ─────────────────────────────────────
     public function parse(Request $request)

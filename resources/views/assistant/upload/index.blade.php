@@ -23,11 +23,13 @@
         appearance:auto;
     }
     select:focus, input:focus { border-color:var(--teal-light); background:var(--white); box-shadow:0 0 0 3px rgba(29,158,117,.1); }
+    select:disabled { opacity:.5; cursor:not-allowed; background:#f0ece3; }
     select option { font-size:13px; padding:6px; }
-    .teacher-reveal { display:flex; align-items:center; gap:10px; padding:12px 14px; background:#f0faf7; border:1px solid #9fe1cb; border-radius:8px; font-size:13px; color:var(--teal); margin-top:8px; transition:all .3s; overflow:hidden; }
-    .teacher-reveal svg { width:16px; height:16px; flex-shrink:0; }
-    .teacher-reveal.hidden { opacity:0; height:0; padding:0; margin:0; border:none; }
-    .teacher-name-display { font-weight:600; }
+    .context-reveal { display:flex; align-items:center; gap:10px; padding:12px 14px; background:#f0faf7; border:1px solid #9fe1cb; border-radius:8px; font-size:13px; color:var(--teal); margin-top:4px; transition:all .3s; }
+    .context-reveal.hidden { display:none; }
+    .context-reveal svg { width:16px; height:16px; flex-shrink:0; }
+    .context-reveal strong { font-weight:600; }
+    .ts-warning { display:none; margin-top:6px; padding:10px 14px; background:var(--red-bg,#fff0f0); border:1px solid #f5c6c6; border-radius:8px; font-size:12px; color:var(--red,#c0392b); }
     .divider { border:none; border-top:1px solid var(--border); }
     .upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .file-upload-area { border:2px dashed var(--border); border-radius:10px; padding:24px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; transition:all .2s; text-align:center; position:relative; background:#faf8f5; }
@@ -43,6 +45,7 @@
     .btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:500; text-decoration:none; border:none; cursor:pointer; transition:all .15s; font-family:'DM Sans',sans-serif; }
     .btn-primary { background:var(--navy); color:var(--white); }
     .btn-primary:hover { background:#1e3050; }
+    .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
     .btn-secondary { background:transparent; color:var(--text-mid); border:1.5px solid var(--border); }
     .info-note { display:flex; gap:10px; padding:12px 14px; background:var(--blue-bg); border:1px solid #b5d4f4; border-radius:8px; font-size:12px; color:var(--blue); line-height:1.6; }
     .info-note svg { flex-shrink:0; width:15px; height:15px; margin-top:1px; }
@@ -51,60 +54,107 @@
 @endpush
 
 @section('content')
-<form method="POST" action="{{ route('assistant.upload.parse') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ route('assistant.upload.parse') }}" enctype="multipart/form-data" id="upload-form">
 @csrf
+
+{{-- Resolved by JS before submit --}}
+<input type="hidden" name="teacher_subject_id" id="resolved-ts-id">
+
 <div class="upload-card">
     <div class="upload-card-header">
         <h2>Upload exam results</h2>
-        <p>Select the subject and exam type. The teacher will be identified automatically.</p>
+        <p>Select the school year, semester, subject, exam type, and teacher to identify the class.</p>
     </div>
     <div class="upload-body">
 
-        {{-- Step 1 --}}
+        {{-- ── Step 1 ─────────────────────────────────────────────────────── --}}
         <div>
-            <div class="step-label">Step 1 — Select subject & exam type</div>
-            <div class="field-row" style="margin-bottom:8px">
+            <div class="step-label">Step 1 — Identify the class</div>
+
+            {{-- Row 1: School year + Semester --}}
+            <div class="field-row" style="margin-bottom:16px">
                 <div class="field">
-                    <label for="teacher_subject_id">Subject & Section <span class="req">*</span></label>
-                    <select name="teacher_subject_id" id="teacher_subject_id" required>
-                        <option value="">— Select subject —</option>
-                        @forelse($teacherSubjects as $ts)
-                            <option value="{{ $ts->id }}"
-                                    data-teacher="{{ $ts->teacher->teacher_name ?? 'Unknown' }}"
-                                    {{ old('teacher_subject_id') == $ts->id ? 'selected' : '' }}>
-                                {{ $ts->subject->subject_code }} — {{ $ts->subject->subject_name }}
-                                | {{ $ts->section }}
-                                | {{ $ts->semester->semester_name }} Sem
-                                S.Y. {{ $ts->semester->schoolYear->year_start }}–{{ $ts->semester->schoolYear->year_end }}
-                            </option>
-                        @empty
-                            <option value="" disabled>No subjects found — ask admin to assign subjects to teachers first</option>
-                        @endforelse
+                    <label for="sel-sy">School Year <span class="req">*</span></label>
+                    <select id="sel-sy">
+                        <option value="">— Select school year —</option>
+                        @foreach($schoolYears as $sy)
+                        <option value="{{ $sy->id }}">
+                            S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}
+                        </option>
+                        @endforeach
                     </select>
-                    @error('teacher_subject_id')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
                 <div class="field">
-                    <label for="exam_type">Exam type <span class="req">*</span></label>
-                    <select name="exam_type" id="exam_type" required>
-                        <option value="">— Select type —</option>
+                    <label for="sel-sem">Semester <span class="req">*</span></label>
+                    <select id="sel-sem" disabled>
+                        <option value="">— Select semester —</option>
+                        @foreach($semesters as $sem)
+                        <option value="{{ $sem->id }}" data-sy="{{ $sem->school_year_id }}">
+                            {{ $sem->semester_name }} Sem
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            {{-- Row 2: Subject + Exam type --}}
+            <div class="field-row" style="margin-bottom:16px">
+                <div class="field">
+                    <label for="sel-subject">Subject <span class="req">*</span></label>
+                    <select id="sel-subject" disabled>
+                        <option value="">— Select subject —</option>
+                        @foreach($subjects as $subj)
+                        <option value="{{ $subj->id }}">
+                            {{ $subj->subject_code }} — {{ $subj->subject_name }}
+                        </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="sel-exam-type">Exam Type <span class="req">*</span></label>
+                    <select id="sel-exam-type" name="exam_type" disabled>
+                        <option value="">— Select exam type —</option>
                         <option value="prelim"   {{ old('exam_type') == 'prelim'   ? 'selected' : '' }}>Prelim</option>
                         <option value="midterm"  {{ old('exam_type') == 'midterm'  ? 'selected' : '' }}>Midterm</option>
-                        <option value="prefinal" {{ old('exam_type') == 'prefinal' ? 'selected' : '' }}>Prefinal</option>
+                        <option value="prefinal" {{ old('exam_type') == 'prefinal' ? 'selected' : '' }}>Pre-Final</option>
                         <option value="final"    {{ old('exam_type') == 'final'    ? 'selected' : '' }}>Final</option>
                     </select>
                     @error('exam_type')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
             </div>
 
-            <div class="teacher-reveal hidden" id="teacher-reveal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Teacher: <span class="teacher-name-display" id="teacher-name-display"></span></span>
+            {{-- Row 3: Teacher (full width) --}}
+            <div class="field" style="margin-bottom:8px">
+                <label for="sel-teacher">Teacher <span class="req">*</span></label>
+                <select id="sel-teacher" disabled>
+                    <option value="">— Select teacher —</option>
+                    @foreach($teachers as $teacher)
+                    <option value="{{ $teacher->id }}">
+                        {{ $teacher->teacher_code ? $teacher->teacher_code . ' — ' : '' }}{{ $teacher->teacher_name }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+
+            @error('teacher_subject_id')
+            <p class="field-error">{{ $message }}</p>
+            @enderror
+
+            {{-- Warning: no matching class found --}}
+            <div class="ts-warning" id="ts-warning">
+                No class found for this combination. Make sure this subject, semester, and teacher are set up by the admin.
+            </div>
+
+            {{-- Confirm: resolved class context --}}
+            <div class="context-reveal hidden" id="context-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Class identified: <strong id="context-text"></strong></span>
             </div>
         </div>
 
         <hr class="divider">
 
-        {{-- Step 2 --}}
+        {{-- ── Step 2 ─────────────────────────────────────────────────────── --}}
         <div>
             <div class="step-label">Step 2 — Upload PDFs</div>
             <div class="upload-grid">
@@ -140,11 +190,12 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>Students scoring <strong>75% and above</strong> = Pass. Rows with missing name or code will be flagged for manual input before saving. Name mismatches with existing records will also be highlighted for review.</span>
         </div>
+
     </div>
 
     <div class="upload-footer">
         <a href="{{ route('assistant.dashboard') }}" class="btn btn-secondary">Cancel</a>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Parse PDF
         </button>
@@ -155,42 +206,194 @@
 
 @push('scripts')
 <script>
-const select  = document.getElementById('teacher_subject_id');
-const reveal  = document.getElementById('teacher-reveal');
-const display = document.getElementById('teacher-name-display');
+// ── All teacher_subjects for client-side resolution ───────────────────────
+const TS_DATA = @json($teacherSubjects->map(fn($ts) => [
+    'id'          => $ts->id,
+    'semester_id' => $ts->semester_id,
+    'subject_id'  => $ts->subject_id,
+    'teacher_id'  => $ts->teacher->id,
+    'teacher_name'=> $ts->teacher->teacher_name,
+    'subject_code'=> $ts->subject->subject_code,
+    'subject_name'=> $ts->subject->subject_name,
+    'section'     => $ts->section,
+    'semester_name'=> $ts->semester->semester_name,
+]));
 
-function updateTeacher() {
-    const opt     = select.options[select.selectedIndex];
-    const teacher = opt ? opt.getAttribute('data-teacher') : null;
-    if (teacher && select.value) {
-        display.textContent = teacher;
-        reveal.classList.remove('hidden');
+const selSY       = document.getElementById('sel-sy');
+const selSem      = document.getElementById('sel-sem');
+const selSubject  = document.getElementById('sel-subject');
+const selExamType = document.getElementById('sel-exam-type');
+const selTeacher  = document.getElementById('sel-teacher');
+const resolvedId  = document.getElementById('resolved-ts-id');
+const warning     = document.getElementById('ts-warning');
+const contextReveal = document.getElementById('context-reveal');
+const contextText   = document.getElementById('context-text');
+const submitBtn     = document.getElementById('submit-btn');
+
+// Snapshot all options once for re-filtering
+const semOpts     = Array.from(selSem.options).slice(1).map(o => o.cloneNode(true));
+const subjectOpts = Array.from(selSubject.options).slice(1).map(o => o.cloneNode(true));
+const teacherOpts = Array.from(selTeacher.options).slice(1).map(o => o.cloneNode(true));
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function resetSelect(sel, placeholder) {
+    sel.innerHTML = `<option value="">${placeholder}</option>`;
+    sel.disabled  = true;
+    sel.value     = '';
+}
+
+function resolve() {
+    const semId     = selSem.value;
+    const subjectId = selSubject.value;
+    const teacherId = selTeacher.value;
+    const examType  = selExamType.value;
+
+    const match = TS_DATA.find(ts =>
+        String(ts.semester_id) === semId &&
+        String(ts.subject_id)  === subjectId &&
+        String(ts.teacher_id)  === teacherId
+    );
+
+    resolvedId.value = match ? match.id : '';
+
+    const allChosen = semId && subjectId && teacherId;
+    warning.style.display = allChosen && !match ? 'block' : 'none';
+
+    const fullyReady = match && examType;
+    submitBtn.disabled = !fullyReady;
+
+    if (fullyReady) {
+        contextText.textContent =
+            `${match.subject_code} — ${match.subject_name} | ${match.section} | `+
+            `${match.semester_name} Sem | ${match.teacher_name} | `+
+            `${selExamType.options[selExamType.selectedIndex].text}`;
+        contextReveal.classList.remove('hidden');
     } else {
-        reveal.classList.add('hidden');
+        contextReveal.classList.add('hidden');
     }
 }
-select.addEventListener('change', updateTeacher);
-updateTeacher();
 
+// ── Cascade: School Year → Semester ──────────────────────────────────────
+selSY.addEventListener('change', function () {
+    const syId = this.value;
+    selSem.innerHTML = '<option value="">— Select semester —</option>';
+    semOpts.forEach(o => {
+        if (!syId || o.dataset.sy === syId) selSem.appendChild(o.cloneNode(true));
+    });
+    selSem.disabled = !syId;
+    resetSelect(selSubject, '— Select subject —');
+    resetSelect(selTeacher, '— Select teacher —');
+    selExamType.disabled = true;
+    selExamType.value    = '';
+    resolve();
+});
+
+// ── Cascade: Semester → Subject ───────────────────────────────────────────
+selSem.addEventListener('change', function () {
+    const semId = this.value;
+    const validSubjectIds = new Set(
+        TS_DATA.filter(ts => !semId || String(ts.semester_id) === semId)
+               .map(ts => String(ts.subject_id))
+    );
+    selSubject.innerHTML = '<option value="">— Select subject —</option>';
+    subjectOpts.forEach(o => {
+        if (validSubjectIds.has(o.value)) selSubject.appendChild(o.cloneNode(true));
+    });
+    selSubject.disabled = !semId || validSubjectIds.size === 0;
+    resetSelect(selTeacher, '— Select teacher —');
+    selExamType.disabled = true;
+    selExamType.value    = '';
+    resolve();
+});
+
+// ── Cascade: Subject → Teacher ────────────────────────────────────────────
+selSubject.addEventListener('change', function () {
+    const semId     = selSem.value;
+    const subjectId = this.value;
+    const validTeacherIds = new Set(
+        TS_DATA.filter(ts =>
+            (!semId     || String(ts.semester_id) === semId) &&
+            (!subjectId || String(ts.subject_id)  === subjectId)
+        ).map(ts => String(ts.teacher_id))
+    );
+    selTeacher.innerHTML = '<option value="">— Select teacher —</option>';
+    teacherOpts.forEach(o => {
+        if (validTeacherIds.has(o.value)) selTeacher.appendChild(o.cloneNode(true));
+    });
+    selTeacher.disabled = !subjectId || validTeacherIds.size === 0;
+    selExamType.disabled = true;
+    selExamType.value    = '';
+    resolve();
+});
+
+// ── Teacher selected → enable exam type ───────────────────────────────────
+selTeacher.addEventListener('change', function () {
+    const semId     = selSem.value;
+    const subjectId = selSubject.value;
+    const teacherId = this.value;
+    const hasMatch  = TS_DATA.some(ts =>
+        String(ts.semester_id) === semId &&
+        String(ts.subject_id)  === subjectId &&
+        String(ts.teacher_id)  === teacherId
+    );
+    selExamType.disabled = !hasMatch;
+    if (!hasMatch) selExamType.value = '';
+    resolve();
+});
+
+// ── Exam type change → final resolve ─────────────────────────────────────
+selExamType.addEventListener('change', resolve);
+
+// ── Auto-select active semester on load ───────────────────────────────────
+@if($activeSemester)
+(function () {
+    const activeSyId  = '{{ $activeSemester->school_year_id }}';
+    const activeSemId = '{{ $activeSemester->id }}';
+    selSY.value = activeSyId;
+    // Trigger SY cascade first
+    selSY.dispatchEvent(new Event('change'));
+    // Then set semester after DOM settles
+    setTimeout(() => {
+        selSem.value = activeSemId;
+        selSem.dispatchEvent(new Event('change'));
+    }, 0);
+})();
+@endif
+
+// ── File upload UI ────────────────────────────────────────────────────────
 function wireFile(inputId, areaId, labelId) {
     const input = document.getElementById(inputId);
     const area  = document.getElementById(areaId);
     const label = document.getElementById(labelId);
     input.addEventListener('change', () => {
-        if (input.files[0]) { label.textContent = input.files[0].name; area.classList.add('has-file'); }
+        if (input.files[0]) {
+            label.textContent = input.files[0].name;
+            area.classList.add('has-file');
+        }
     });
-    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+    area.addEventListener('dragover',  e => { e.preventDefault(); area.classList.add('dragover'); });
     area.addEventListener('dragleave', () => area.classList.remove('dragover'));
     area.addEventListener('drop', e => {
-        e.preventDefault(); area.classList.remove('dragover');
+        e.preventDefault();
+        area.classList.remove('dragover');
         if (e.dataTransfer.files[0]) {
-            input.files = e.dataTransfer.files;
-            label.textContent = e.dataTransfer.files[0].name;
+            input.files         = e.dataTransfer.files;
+            label.textContent   = e.dataTransfer.files[0].name;
             area.classList.add('has-file');
         }
     });
 }
 wireFile('master-input', 'master-area', 'master-label');
 wireFile('matrix-input', 'matrix-area', 'matrix-label');
+
+// ── Submit guard ──────────────────────────────────────────────────────────
+document.getElementById('upload-form').addEventListener('submit', function (e) {
+    if (!resolvedId.value) {
+        e.preventDefault();
+        warning.style.display   = 'block';
+        warning.textContent     = 'Please complete all fields before uploading.';
+        selSY.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
 </script>
 @endpush

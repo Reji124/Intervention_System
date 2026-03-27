@@ -458,6 +458,12 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 
 @foreach($grouped as $teacherName => $subjectMap)
 @php
+    // Teacher-level stats: sum across all subjects and exam types
+    $tPass  = $subjectMap->sum('pass_count');
+    $tFail  = $subjectMap->sum('fail_count');
+    $tTotal = $subjectMap->sum('total_count');
+    $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
+
     $firstSubjectData = $subjectMap->first();
     $teacherObj  = $firstSubjectData['teacher_subject']->teacher;
     $teacherNote = $firstSubjectData['teacher_note'];
@@ -465,13 +471,9 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
     $noteLabels  = \App\Models\TeacherNote::STATUSES;
     $semId       = $selectedSem ?? $activeSemester?->id;
 
-    $tPass  = $subjectMap->sum('pass_count');
-    $tFail  = $subjectMap->sum('fail_count');
-    $tTotal = $subjectMap->sum('total_count');
-    $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
-    $inits  = collect(explode(' ', $teacherName))
-                ->map(fn($w) => strtoupper(substr($w, 0, 1)))
-                ->take(2)->implode('');
+    $inits = collect(explode(' ', $teacherName))
+               ->map(fn($w) => strtoupper(substr($w, 0, 1)))
+               ->take(2)->implode('');
 @endphp
 
 <div class="teacher-block" id="teacher-block-{{ $teacherObj->id }}">
@@ -486,10 +488,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
             </div>
         </div>
         <div class="teacher-right">
-            {{-- Status badge + Notes button (level with chips) --}}
             <div class="status-badge-wrap" onclick="event.stopPropagation()">
-                <span class="status-badge status-{{ $noteStatus }}"
-                      id="status-badge-{{ $teacherObj->id }}">
+                <span class="status-badge status-{{ $noteStatus }}" id="status-badge-{{ $teacherObj->id }}">
                     {{ $noteLabels[$noteStatus] ?? 'No Status' }}
                 </span>
                 <button class="btn-notes-trigger {{ $teacherNote && $teacherNote->notes ? 'has-note' : '' }}"
@@ -499,193 +499,238 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
                 </button>
             </div>
+            {{-- Teacher stat: passing rate across all subjects/exams --}}
             <div class="stat-chips">
-                <div class="chip chip-total"><span class="chip-val">{{ $tTotal }}</span><span class="chip-label">Total</span></div>
-                <div class="chip chip-pass"><span class="chip-val">{{ $tPass }}</span><span class="chip-label">Passed</span></div>
-                <div class="chip chip-fail"><span class="chip-val">{{ $tFail }}</span><span class="chip-label">Failed</span></div>
                 <div class="chip chip-rate"><span class="chip-val">{{ $tRate }}%</span><span class="chip-label">Pass rate</span></div>
+                <div class="chip chip-total"><span class="chip-val">{{ $tTotal }}</span><span class="chip-label">Total</span></div>
+                <div class="chip chip-fail"><span class="chip-val">{{ $tFail }}</span><span class="chip-label">Failed</span></div>
             </div>
             <svg class="toggle-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
     </div>
 
     <div class="teacher-body">
-        @foreach($subjectMap as $label => $subjectData)
+        {{-- Subject loop --}}
+        @foreach($subjectMap as $subjectLabel => $subjectData)
         @php
-            $exam       = $subjectData['exam'];
-            $hasMatrix  = !empty($exam?->item_matrix_data);
-            $matrix     = $exam?->item_matrix_data ?? [];
-            $discCols   = $matrix['disc_columns']  ?? [];
-            $matrixRows = $matrix['rows']          ?? [];
-            $colTotals  = $matrix['column_totals'] ?? [];
-            $grandTotal = $matrix['grand_total']   ?? 0;
-            $legend     = $matrix['legend']        ?? [];
-            $diffColors = ['81-100%'=>'#27ae60','61-80%'=>'#2ecc71','41-60%'=>'#f39c12','21-40%'=>'#e67e22','0-20%'=>'#e74c3c'];
-            $chipClass  = function(string $col): string {
-                if (in_array($col, ['<.00', '.00-.14'])) return 'chip-reject';
-                if (in_array($col, ['.15-.24', '.25-.29'])) return 'chip-needs-revision';
-                return 'chip-acceptable';
-            };
-            $tabId      = 'tab-' . md5($teacherName . $label);
-            $uploaderName = $exam?->uploadedBy?->name ?? null;
+            $sPass = $subjectData['pass_count'];
+            $sFail = $subjectData['fail_count'];
+            $sTotal = $subjectData['total_count'];
+            $sRate  = $subjectData['pass_rate'];
+            $subjectTabId = 'stab-' . md5($teacherName . $subjectLabel);
         @endphp
 
-        <div class="subject-block">
+        <div class="subject-block" style="border-bottom:2px solid var(--border)">
             <div class="subject-header" onclick="toggleSubject(this)">
                 <div class="subject-title-text">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;color:var(--text-soft)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                    {{ $label }}
-                    @if($hasMatrix)
-                    <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:1px 7px;border-radius:10px">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:9px;height:9px"><polyline points="20 6 9 17 4 12"/></svg>Matrix
-                    </span>
-                    @endif
-                    {{-- Uploader badge --}}
-                    @if($uploaderName)
-                    <span class="uploader-badge">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {{ $uploaderName }}
-                    </span>
-                    @endif
+                    {{ $subjectLabel }}
                 </div>
                 <div class="subject-pills">
-                    <span class="badge badge-pass" style="padding:3px 9px">{{ $subjectData['pass_count'] }} pass</span>
-                    @if($subjectData['fail_count'] > 0)
-                    <span class="badge badge-fail" style="padding:3px 9px">{{ $subjectData['fail_count'] }} fail</span>
-                    @endif
-                    @if($exam)
-                    <button class="btn-delete-exam"
-                        onclick="event.stopPropagation();deleteExam({{ $exam->id }}, this.closest('.subject-block'))">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                        Delete exam
-                    </button>
+                    {{-- Subject-level passing rate chip --}}
+                    <span style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 10px;border-radius:7px;background:var(--amber-bg);color:var(--amber);font-size:10px;font-weight:700;min-width:48px">
+                        <span style="font-family:'DM Serif Display',serif;font-size:15px;line-height:1">{{ $sRate }}%</span>
+                        <span style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Pass rate</span>
+                    </span>
+                    <span class="badge badge-pass" style="padding:3px 9px">{{ $sPass }} pass</span>
+                    @if($sFail > 0)
+                    <span class="badge badge-fail" style="padding:3px 9px">{{ $sFail }} fail</span>
                     @endif
                     <svg class="sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--text-soft);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
             </div>
 
             <div class="subject-body">
-                <div class="subject-tabs">
-                    <div class="subject-tab active" onclick="switchTab(this,'{{ $tabId }}-students')">
-                        Students ({{ $subjectData['total_count'] }})
-                        @if($subjectData['fail_count'] > 0)
-                        <span style="display:inline-flex;align-items:center;margin-left:4px;padding:1px 6px;background:var(--red-bg);color:var(--red);border-radius:8px;font-size:10px">{{ $subjectData['fail_count'] }} failing</span>
+                {{-- Exam type loop --}}
+                @foreach($subjectData['exam_types'] as $examType => $examData)
+                @php
+                    $exam       = $examData['exam'];
+                    $hasMatrix  = !empty($exam?->item_matrix_data);
+                    $matrix     = $exam?->item_matrix_data ?? [];
+                    $discCols   = $matrix['disc_columns']  ?? [];
+                    $matrixRows = $matrix['rows']          ?? [];
+                    $colTotals  = $matrix['column_totals'] ?? [];
+                    $grandTotal = $matrix['grand_total']   ?? 0;
+                    $legend     = $matrix['legend']        ?? [];
+                    $diffColors = ['81-100%'=>'#27ae60','61-80%'=>'#2ecc71','41-60%'=>'#f39c12','21-40%'=>'#e67e22','0-20%'=>'#e74c3c'];
+                    $chipClass  = function(string $col): string {
+                        if (in_array($col, ['<.00', '.00-.14'])) return 'chip-reject';
+                        if (in_array($col, ['.15-.24', '.25-.29'])) return 'chip-needs-revision';
+                        return 'chip-acceptable';
+                    };
+                    $tabId        = 'tab-' . md5($teacherName . $subjectLabel . $examType);
+                    $uploaderName = $exam?->uploadedBy?->name ?? null;
+                    $etPass  = $examData['pass_count'];
+                    $etFail  = $examData['fail_count'];
+                    $etTotal = $examData['total_count'];
+                    $etRate  = $etTotal > 0 ? round(($etPass / $etTotal) * 100) : 0;
+                @endphp
+
+                <div class="subject-block" style="background:#fdfcfa">
+                    <div class="subject-header" style="padding-left:38px" onclick="toggleSubject(this)">
+                        <div class="subject-title-text" style="gap:10px">
+                            <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px"
+                                  class="badge badge-{{ strtolower($examType) }}">
+                                {{ ucfirst($examType) }}
+                            </span>
+                            @if($hasMatrix)
+                            <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:1px 7px;border-radius:10px">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:9px;height:9px"><polyline points="20 6 9 17 4 12"/></svg>Matrix
+                            </span>
+                            @endif
+                            @if($uploaderName)
+                            <span class="uploader-badge">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                {{ $uploaderName }}
+                            </span>
+                            @endif
+                        </div>
+                        <div class="subject-pills">
+                            {{-- Exam-type stat chip --}}
+                            <span style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 10px;border-radius:7px;background:var(--green-bg);color:var(--green);font-size:10px;font-weight:700;min-width:48px">
+                                <span style="font-family:'DM Serif Display',serif;font-size:15px;line-height:1">{{ $etRate }}%</span>
+                                <span style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Pass rate</span>
+                            </span>
+                            <span class="badge badge-pass" style="padding:3px 9px">{{ $etPass }} pass</span>
+                            @if($etFail > 0)
+                            <span class="badge badge-fail" style="padding:3px 9px">{{ $etFail }} fail</span>
+                            @endif
+                            @if($exam)
+                            <button class="btn-delete-exam"
+                                onclick="event.stopPropagation();deleteExam({{ $exam->id }}, this.closest('.subject-block'))">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                Delete exam
+                            </button>
+                            @endif
+                            <svg class="sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--text-soft);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="subject-body">
+                        <div class="subject-tabs">
+                            <div class="subject-tab active" onclick="switchTab(this,'{{ $tabId }}-students')">
+                                Students ({{ $etTotal }})
+                                @if($etFail > 0)
+                                <span style="display:inline-flex;align-items:center;margin-left:4px;padding:1px 6px;background:var(--red-bg);color:var(--red);border-radius:8px;font-size:10px">{{ $etFail }} failing</span>
+                                @endif
+                            </div>
+                            @if($hasMatrix)
+                            <div class="subject-tab" onclick="switchTab(this,'{{ $tabId }}-matrix')">Item analysis matrix</div>
+                            @endif
+                        </div>
+
+                        {{-- Students tab --}}
+                        <div id="{{ $tabId }}-students" class="tab-panel active">
+                            @if($examData['all_results']->count())
+                            <table class="master-tbl">
+                                <thead>
+                                    <tr>
+                                        <th>#</th><th>Student</th><th>Raw score</th><th>Percentage</th><th>Remark</th><th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-{{ $tabId }}">
+                                    @foreach($examData['all_results']->sortBy('percentage') as $i => $result)
+                                    @if(!$result->student) @continue @endif
+                                    <tr id="row-{{ $result->id }}">
+                                        <td style="color:var(--text-soft);font-size:11px">{{ $i + 1 }}</td>
+                                        <td>
+                                            <div class="td-name">{{ $result->student->student_name }}</div>
+                                            <div class="td-code">{{ $result->student->student_code }}</div>
+                                        </td>
+                                        <td id="score-{{ $result->id }}">{{ $result->raw_score }}</td>
+                                        <td><span id="pct-{{ $result->id }}" class="{{ $result->remark === 'fail' ? 'pct-fail' : 'pct-pass' }}">{{ $result->percentage }}%</span></td>
+                                        <td><span id="badge-{{ $result->id }}" class="badge badge-{{ $result->remark }}">{{ ucfirst($result->remark) }}</span></td>
+                                        <td>
+                                            <div class="row-actions">
+                                                <button class="btn-edit-row" onclick="openEdit({{ $result->id }}, {{ $result->raw_score }})">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                    Edit
+                                                </button>
+                                                <button class="btn-del-row" onclick="deleteResult({{ $result->id }})">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            @else
+                            <div style="padding:20px 22px;font-size:13px;color:var(--text-soft)">No results recorded for this exam type yet.</div>
+                            @endif
+                        </div>
+
+                        {{-- Matrix tab --}}
+                        @if($hasMatrix)
+                        <div id="{{ $tabId }}-matrix" class="tab-panel">
+                            <div class="matrix-wrap-inner">
+                                <table class="matrix-tbl">
+                                    <thead>
+                                        <tr>
+                                            <th>Difficulty</th>
+                                            @foreach($discCols as $col)<th>{{ $col }}</th>@endforeach
+                                            <th>Total</th>
+                                        </tr>
+                                        <tr class="sub-row">
+                                            <th></th>
+                                            @foreach($discCols as $col)
+                                            <th>
+                                                @if(in_array($col,['<.00','.00-.14'])) <span style="color:#f09595">Reject</span>
+                                                @elseif(in_array($col,['.15-.24','.25-.29'])) <span style="color:#e8b45a">Revise</span>
+                                                @else <span style="color:#9fe1cb">Accept</span>
+                                                @endif
+                                            </th>
+                                            @endforeach
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($matrixRows as $row)
+                                        <tr>
+                                            <td>
+                                                <span class="diff-dot" style="background:{{ $diffColors[$row['difficulty']] ?? '#888' }}"></span>
+                                                {{ $row['difficulty'] }}
+                                                <span style="font-size:10px;color:var(--text-soft);font-weight:400;margin-left:2px">{{ $row['label'] ?? '' }}</span>
+                                            </td>
+                                            @foreach($discCols as $col)
+                                            <td>
+                                                @if(!empty($row['columns'][$col]))
+                                                    <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
+                                                        @foreach($row['columns'][$col] as $item)<span class="item-chip-sm {{ $chipClass($col) }}">{{ $item }}</span>@endforeach
+                                                    </div>
+                                                @else
+                                                    <span style="color:var(--border);font-size:14px">×</span>
+                                                @endif
+                                            </td>
+                                            @endforeach
+                                            <td class="row-total">{{ $row['total'] ?? 0 }}</td>
+                                        </tr>
+                                        @endforeach
+                                        <tr class="totals-row">
+                                            <td>Total</td>
+                                            @foreach($discCols as $col)<td>{{ $colTotals[$col] ?? 0 }}</td>@endforeach
+                                            <td>{{ $grandTotal }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="matrix-legend-row">
+                                <div class="legend-item"><span class="legend-dot reject"></span>Reject: <span class="legend-count reject">{{ count($legend['reject'] ?? []) }}</span></div>
+                                <div class="legend-item"><span class="legend-dot needs-revision"></span>Needs Revision: <span class="legend-count needs-revision">{{ count($legend['needs_revision'] ?? []) }}</span></div>
+                                <div class="legend-item"><span class="legend-dot acceptable"></span>Acceptable: <span class="legend-count acceptable">{{ count($legend['acceptable'] ?? []) }}</span></div>
+                            </div>
+                        </div>
                         @endif
                     </div>
-                    @if($hasMatrix)
-                    <div class="subject-tab" onclick="switchTab(this,'{{ $tabId }}-matrix')">Item analysis matrix</div>
-                    @endif
                 </div>
-
-                {{-- Students tab --}}
-                <div id="{{ $tabId }}-students" class="tab-panel active">
-                    @if($subjectData['all_results']->count())
-                    <table class="master-tbl">
-                        <thead>
-                            <tr>
-                                <th>Student</th><th>Exam</th><th>Raw score</th><th>Percentage</th><th>Remark</th><th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-{{ $tabId }}">
-                            @foreach($subjectData['all_results']->sortBy('percentage') as $result)
-                            @if(!$result->student) @continue @endif
-                            <tr id="row-{{ $result->id }}">
-                                <td>
-                                    <div class="td-name">{{ $result->student->student_name }}</div>
-                                    <div class="td-code">{{ $result->student->student_code }}</div>
-                                </td>
-                                <td><span class="badge badge-{{ $result->exam->exam_type ?? 'prelim' }}">{{ ucfirst($result->exam->exam_type ?? '—') }}</span></td>
-                                <td id="score-{{ $result->id }}">{{ $result->raw_score }}</td>
-                                <td><span id="pct-{{ $result->id }}" class="{{ $result->remark === 'fail' ? 'pct-fail' : 'pct-pass' }}">{{ $result->percentage }}%</span></td>
-                                <td><span id="badge-{{ $result->id }}" class="badge badge-{{ $result->remark }}">{{ ucfirst($result->remark) }}</span></td>
-                                <td>
-                                    <div class="row-actions">
-                                        <button class="btn-edit-row" onclick="openEdit({{ $result->id }}, {{ $result->raw_score }})">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                            Edit
-                                        </button>
-                                        <button class="btn-del-row" onclick="deleteResult({{ $result->id }})">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                    @else
-                    <div style="padding:20px 22px;font-size:13px;color:var(--text-soft)">No results recorded for this subject yet.</div>
-                    @endif
-                </div>
-
-                {{-- Matrix tab --}}
-                @if($hasMatrix)
-                <div id="{{ $tabId }}-matrix" class="tab-panel">
-                    <div class="matrix-wrap-inner">
-                        <table class="matrix-tbl">
-                            <thead>
-                                <tr>
-                                    <th>Difficulty</th>
-                                    @foreach($discCols as $col)<th>{{ $col }}</th>@endforeach
-                                    <th>Total</th>
-                                </tr>
-                                <tr class="sub-row">
-                                    <th></th>
-                                    @foreach($discCols as $col)
-                                    <th>
-                                        @if(in_array($col,['<.00','.00-.14'])) <span style="color:#f09595">Reject</span>
-                                        @elseif(in_array($col,['.15-.24','.25-.29'])) <span style="color:#e8b45a">Revise</span>
-                                        @else <span style="color:#9fe1cb">Accept</span>
-                                        @endif
-                                    </th>
-                                    @endforeach
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($matrixRows as $row)
-                                <tr>
-                                    <td>
-                                        <span class="diff-dot" style="background:{{ $diffColors[$row['difficulty']] ?? '#888' }}"></span>
-                                        {{ $row['difficulty'] }}
-                                        <span style="font-size:10px;color:var(--text-soft);font-weight:400;margin-left:2px">{{ $row['label'] ?? '' }}</span>
-                                    </td>
-                                    @foreach($discCols as $col)
-                                    <td>
-                                        @if(!empty($row['columns'][$col]))
-                                            <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">
-                                                @foreach($row['columns'][$col] as $item)<span class="item-chip-sm {{ $chipClass($col) }}">{{ $item }}</span>@endforeach
-                                            </div>
-                                        @else
-                                            <span style="color:var(--border);font-size:14px">×</span>
-                                        @endif
-                                    </td>
-                                    @endforeach
-                                    <td class="row-total">{{ $row['total'] ?? 0 }}</td>
-                                </tr>
-                                @endforeach
-                                <tr class="totals-row">
-                                    <td>Total</td>
-                                    @foreach($discCols as $col)<td>{{ $colTotals[$col] ?? 0 }}</td>@endforeach
-                                    <td>{{ $grandTotal }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="matrix-legend-row">
-                        <div class="legend-item"><span class="legend-dot reject"></span>Reject: <span class="legend-count reject">{{ count($legend['reject'] ?? []) }}</span></div>
-                        <div class="legend-item"><span class="legend-dot needs-revision"></span>Needs Revision: <span class="legend-count needs-revision">{{ count($legend['needs_revision'] ?? []) }}</span></div>
-                        <div class="legend-item"><span class="legend-dot acceptable"></span>Acceptable: <span class="legend-count acceptable">{{ count($legend['acceptable'] ?? []) }}</span></div>
-                    </div>
-                </div>
-                @endif
+                @endforeach {{-- exam_types --}}
             </div>
         </div>
-        @endforeach
+        @endforeach {{-- subjectMap --}}
     </div>
 </div>
-@endforeach
+@endforeach {{-- grouped --}}
 
 @endif {{-- end $grouped->isEmpty() --}}
 

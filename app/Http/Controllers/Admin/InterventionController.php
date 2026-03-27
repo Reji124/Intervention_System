@@ -131,34 +131,54 @@ class InterventionController extends Controller
                 ->filter(fn($ts) => $ts->teacher && $ts->subject)
                 ->groupBy(fn($ts) => $ts->teacher->teacher_name)
                 ->map(function ($teacherTSList) use ($teacherNotes) {
-                    // Attach note to the teacher model for blade use
                     $teacher     = $teacherTSList->first()->teacher;
                     $teacherNote = $teacherNotes->get($teacher->id);
 
-                    return $teacherTSList->mapWithKeys(function ($ts) use ($teacherNote) {
-                        $allResults     = $ts->exams->flatMap(fn($e) => $e->examResults);
-                        $failingResults = $allResults->where('remark', 'fail')
-                                                     ->sortBy('percentage')
-                                                     ->values();
+                    // teacher → subject label → exam_type → data
+                    return $teacherTSList->groupBy(function ($ts) {
+                        return $ts->subject->subject_code
+                            . ' — ' . $ts->subject->subject_name
+                            . ($ts->section ? ' (' . $ts->section . ')' : '');
+                    })->map(function ($subjectTSList) use ($teacherNote) {
+                        // subject-level stats (across all exam types)
+                        $allSubjectResults = $subjectTSList->flatMap(
+                            fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
+                        );
 
-                        $examWithMatrix = $ts->exams->first(fn($e) => !empty($e->item_matrix_data));
-                        $anyExam        = $ts->exams->first();
+                        // group by exam_type within this subject
+                        $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
+                            ->groupBy('exam_type')
+                            ->map(function ($examsOfType) use ($teacherNote) {
+                                $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
+                                $failingResults = $allResults->where('remark', 'fail')
+                                                            ->sortBy('percentage')
+                                                            ->values();
+                                $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
+                                $anyExam        = $examsOfType->first();
 
-                        $label = $ts->subject->subject_code
-                               . ' — ' . $ts->subject->subject_name
-                               . ($ts->section ? ' (' . $ts->section . ')' : '');
+                                return [
+                                    'teacher_note'    => $teacherNote,
+                                    'teacher_subject' => $anyExam?->teacherSubject ?? null,
+                                    'all_results'     => $allResults,
+                                    'failing_results' => $failingResults,
+                                    'pass_count'      => $allResults->where('remark', 'pass')->count(),
+                                    'fail_count'      => $failingResults->count(),
+                                    'total_count'     => $allResults->count(),
+                                    'exam'            => $examWithMatrix ?? $anyExam,
+                                ];
+                            });
 
-                        return [$label => [
-                            'teacher_subject' => $ts,
-                            'teacher_note'    => $teacherNote,   // ← attached to every subject row
-                            'label'           => $label,
-                            'all_results'     => $allResults,
-                            'failing_results' => $failingResults,
-                            'pass_count'      => $allResults->where('remark', 'pass')->count(),
-                            'fail_count'      => $failingResults->count(),
-                            'total_count'     => $allResults->count(),
-                            'exam'            => $examWithMatrix ?? $anyExam,
-                        ]];
+                        return [
+                            'exam_types'  => $examTypes,
+                            'pass_count'  => $allSubjectResults->where('remark', 'pass')->count(),
+                            'fail_count'  => $allSubjectResults->where('remark', 'fail')->count(),
+                            'total_count' => $allSubjectResults->count(),
+                            'pass_rate'   => $allSubjectResults->count() > 0
+                                ? round(($allSubjectResults->where('remark', 'pass')->count() / $allSubjectResults->count()) * 100)
+                                : 0,
+                            'teacher_note' => $teacherNote,
+                            'teacher_subject' => $subjectTSList->first(),
+                        ];
                     });
                 });
 
