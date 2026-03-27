@@ -1019,42 +1019,21 @@ document.querySelectorAll('.status-opt').forEach(opt => {
 
 async function saveNote() {
     const status = document.querySelector('.status-opt.selected')?.dataset.val ?? 'no_status';
-    const notes  = document.getElementById('notes-textarea').value.trim();
+    const notes  = document.getElementById('notes-textarea').value;
+
+    console.log('Sending:', { status, notes, semester_id: notesSemesterId, teacher: notesTeacherId });
 
     const btn = document.getElementById('notes-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
 
     try {
-        const res  = await fetch(`/admin/teachers/${notesTeacherId}/note`, {
+        const res = await fetch(`/admin/teachers/${notesTeacherId}/note`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
             body: JSON.stringify({ status, notes, semester_id: notesSemesterId })
         });
         const data = await res.json();
-
-        if (data.success) {
-            // Update status badge on the teacher card
-            const badgeEl = document.getElementById(`status-badge-${notesTeacherId}`);
-            if (badgeEl) {
-                badgeEl.className = `status-badge status-${data.status}`;
-                badgeEl.textContent = data.status_label;
-            }
-
-            // Update the notes btn data attributes & style
-            const notesBtn = document.getElementById(`notes-btn-${notesTeacherId}`);
-            if (notesBtn) {
-                notesBtn.dataset.notes     = data.notes ?? '';
-                notesBtn.dataset.updatedBy = data.updated_by ?? '';
-                notesBtn.dataset.updatedAt = data.updated_at ?? '';
-                notesBtn.classList.toggle('has-note', !!(data.notes));
-            }
-
-            closeNotes();
-        }
-    } finally {
-        btn.disabled = false; btn.textContent = 'Save note';
-    }
-}
+        console.log('Response:', data);
 
 document.getElementById('notes-panel-backdrop').addEventListener('click', function(e) {
     if (e.target === this) closeNotes();
