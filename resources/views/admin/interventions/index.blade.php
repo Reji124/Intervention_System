@@ -1191,9 +1191,9 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
 (function() {
     const btn = document.getElementById('notes-btn-{{ $tObj->id }}');
     if (btn) {
-        btn.dataset.notes     = {{ json_encode($tNote->notes ?? '') }};
-        btn.dataset.updatedBy = {{ json_encode($tNote->updatedByUser?->name ?? '') }};
-        btn.dataset.updatedAt = {{ json_encode($tNote->updated_at?->format('M d, Y g:i A') ?? '') }};
+        btn.dataset.notes     = {!! json_encode($tNote->notes ?? '') !!};
+        btn.dataset.updatedBy = {!! json_encode($tNote->updatedByUser?->name ?? '') !!};
+        btn.dataset.updatedAt = {!! json_encode($tNote->updated_at?->format('M d, Y g:i A') ?? '') !!};
     }
 })();
 </script>
