@@ -52,3 +52,4 @@ class TeacherNote extends Model
         return self::STATUSES[$this->status] ?? 'No Status';
     }
 }
+//Renamed from TeacherNotes to TeacherNote to follow Laravel convention of singular model names.
