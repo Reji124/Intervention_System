@@ -207,17 +207,7 @@
 @push('scripts')
 <script>
 // ── All teacher_subjects for client-side resolution ───────────────────────
-const TS_DATA = @json($teacherSubjects->map(fn($ts) => [
-    'id'          => $ts->id,
-    'semester_id' => $ts->semester_id,
-    'subject_id'  => $ts->subject_id,
-    'teacher_id'  => $ts->teacher->id,
-    'teacher_name'=> $ts->teacher->teacher_name,
-    'subject_code'=> $ts->subject->subject_code,
-    'subject_name'=> $ts->subject->subject_name,
-    'section'     => $ts->section,
-    'semester_name'=> $ts->semester->semester_name,
-]));
+const TS_DATA = @json($tsJson);
 
 const selSY       = document.getElementById('sel-sy');
 const selSem      = document.getElementById('sel-sem');

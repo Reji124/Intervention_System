@@ -34,7 +34,6 @@ public function index()
 
     $teachers = \App\Models\Teacher::orderBy('teacher_name')->get();
 
-    // Still load teacher_subjects so JS can do cascading filtering
     $teacherSubjects = TeacherSubject::with([
             'subject',
             'teacher',
@@ -47,12 +46,27 @@ public function index()
         ->where('is_active', true)->first()
         ?? Semester::with('schoolYear')->latest('id')->first();
 
+    $tsJson = $teacherSubjects->map(function ($ts) {
+        return [
+            'id'           => $ts->id,
+            'semester_id'  => $ts->semester_id,
+            'subject_id'   => $ts->subject_id,
+            'teacher_id'   => $ts->teacher->id,
+            'teacher_name' => $ts->teacher->teacher_name,
+            'subject_code' => $ts->subject->subject_code,
+            'subject_name' => $ts->subject->subject_name,
+            'section'      => $ts->section,
+            'semester_name'=> $ts->semester->semester_name,
+        ];
+    })->values();
+
     return view('assistant.upload.index', compact(
         'schoolYears',
         'semesters',
         'subjects',
         'teachers',
         'teacherSubjects',
+        'tsJson',
         'activeSemester',
     ));
 }
