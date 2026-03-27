@@ -289,6 +289,9 @@
             color: var(--text-soft);
             display: flex;
             align-items: center;
+            justify-content: center;  /* add this */
+            width: 28px;              /* add this */
+            height: 28px;             /* add this */
         }
 
         .toggle-pw:hover { color: var(--text-dark); }
