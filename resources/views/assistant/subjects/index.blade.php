@@ -16,8 +16,7 @@
     .subject-name { font-family:'DM Serif Display',serif; font-size:16px; color:var(--text-dark); margin-bottom:3px; }
     .subject-meta { font-size:11px; color:var(--text-soft); }
     .subject-course { font-size:11px; color:var(--text-soft); margin-top:2px; font-style:italic; }
-    .card-stats { display:grid; grid-template-columns:1fr 1fr 1fr; padding:10px 18px; gap:8px; }
-    .cs-item { display:flex; flex-direction:column; gap:2px; }
+    .card-stats { display:grid; grid-template-columns:1fr 1fr; padding:10px 18px; gap:8px; }    .cs-item { display:flex; flex-direction:column; gap:2px; }
     .cs-val { font-family:'DM Serif Display',serif; font-size:18px; color:var(--text-dark); }
     .cs-val.fail { color:var(--red); }
     .cs-label { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--text-soft); }
@@ -80,20 +79,14 @@
                     <div class="subject-course">{{ $ts->subject->course->course_name }}</div>
                 </div>
                 <div class="card-stats">
-                    <div class="cs-item">
-                        <span class="cs-val">{{ $ts->students->count() }}</span>
-                        <span class="cs-label">Students</span>
-                    </div>
-                    <div class="cs-item">
-                        <span class="cs-val">{{ $ts->exams->count() }}</span>
-                        <span class="cs-label">Exams</span>
-                    </div>
-                    <div class="cs-item">
-                        <span class="cs-val fail">
-                            {{ \App\Models\ExamResult::whereHas('exam', fn($q) => $q->where('teacher_subject_id', $ts->id))->where('remark','fail')->distinct('student_id')->count('student_id') }}
-                        </span>
-                        <span class="cs-label">Failing</span>
-                    </div>
+                <div class="cs-item">
+                    <span class="cs-val">{{ $studentCounts[$ts->id] ?? 0 }}</span>
+                    <span class="cs-label">Students</span>
+                </div>
+                <div class="cs-item">
+                    <span class="cs-val">{{ $ts->exams->count() }}</span>
+                    <span class="cs-label">Exams</span>
+                </div>
                 </div>
                 <div class="card-footer">
                     <span class="badge badge-{{ $ts->semester->semester_name === '1st' ? '1st' : '2nd' }}">

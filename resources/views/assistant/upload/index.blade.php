@@ -50,6 +50,7 @@
     .info-note { display:flex; gap:10px; padding:12px 14px; background:var(--blue-bg); border:1px solid #b5d4f4; border-radius:8px; font-size:12px; color:var(--blue); line-height:1.6; }
     .info-note svg { flex-shrink:0; width:15px; height:15px; margin-top:1px; }
     .field-error { font-size:11px; color:var(--red); margin-top:2px; }
+    #section-field { flex-direction: column; gap: 6px; }
 </style>
 @endpush
 
@@ -136,6 +137,27 @@
                 </select>
             </div>
 
+            {{-- Row 4: Section picker (shown only when multiple sections match) --}}
+            <div class="field" id="section-field" style="display:none; margin-bottom:8px">
+                <label for="sel-section">Section <span class="req">*</span></label>
+                <select id="sel-section">
+                    <option value="">— Select section —</option>
+                </select>
+            </div>
+
+            @error('teacher_subject_id')
+            <p class="field-error">{{ $message }}</p>
+            @enderror
+
+            <div class="ts-warning" id="ts-warning">
+                No class found for this combination. Make sure this subject, semester, and teacher are set up by the admin.
+            </div>
+
+            <div class="context-reveal hidden" id="context-reveal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Class identified: <strong id="context-text"></strong></span>
+            </div>
+
             @error('teacher_subject_id')
             <p class="field-error">{{ $message }}</p>
             @enderror
@@ -206,7 +228,6 @@
 
 @push('scripts')
 <script>
-// ── All teacher_subjects for client-side resolution ───────────────────────
 const TS_DATA = @json($tsJson);
 
 const selSY       = document.getElementById('sel-sy');
@@ -214,18 +235,18 @@ const selSem      = document.getElementById('sel-sem');
 const selSubject  = document.getElementById('sel-subject');
 const selExamType = document.getElementById('sel-exam-type');
 const selTeacher  = document.getElementById('sel-teacher');
+const selSection  = document.getElementById('sel-section');
+const sectionField= document.getElementById('section-field');
 const resolvedId  = document.getElementById('resolved-ts-id');
 const warning     = document.getElementById('ts-warning');
 const contextReveal = document.getElementById('context-reveal');
 const contextText   = document.getElementById('context-text');
 const submitBtn     = document.getElementById('submit-btn');
 
-// Snapshot all options once for re-filtering
 const semOpts     = Array.from(selSem.options).slice(1).map(o => o.cloneNode(true));
 const subjectOpts = Array.from(selSubject.options).slice(1).map(o => o.cloneNode(true));
 const teacherOpts = Array.from(selTeacher.options).slice(1).map(o => o.cloneNode(true));
 
-// ── Helpers ───────────────────────────────────────────────────────────────
 function resetSelect(sel, placeholder) {
     sel.innerHTML = `<option value="">${placeholder}</option>`;
     sel.disabled  = true;
@@ -238,24 +259,56 @@ function resolve() {
     const teacherId = selTeacher.value;
     const examType  = selExamType.value;
 
-    const match = TS_DATA.find(ts =>
+    const matches = TS_DATA.filter(ts =>
         String(ts.semester_id) === semId &&
         String(ts.subject_id)  === subjectId &&
         String(ts.teacher_id)  === teacherId
     );
 
-    resolvedId.value = match ? match.id : '';
-
     const allChosen = semId && subjectId && teacherId;
-    warning.style.display = allChosen && !match ? 'block' : 'none';
 
+    if (!allChosen || matches.length === 0) {
+        // Not enough chosen, or no match
+        resolvedId.value = '';
+        sectionField.style.display = 'none';
+        selSection.innerHTML = '<option value="">— Select section —</option>';
+        warning.style.display = allChosen && matches.length === 0 ? 'block' : 'none';
+        contextReveal.classList.add('hidden');
+        submitBtn.disabled = true;
+        return;
+    }
+
+    warning.style.display = 'none';
+
+    if (matches.length === 1) {
+        // Single match — resolve directly, hide section picker
+        sectionField.style.display = 'none';
+        resolvedId.value = matches[0].id;
+    } else {
+        // Multiple sections — show picker
+        sectionField.style.display = 'flex';
+        const currentVal = selSection.value;
+        selSection.innerHTML = '<option value="">— Select section —</option>';
+        matches.forEach(ts => {
+            const opt = document.createElement('option');
+            opt.value = ts.id;
+            opt.textContent = ts.section;
+            if (String(ts.id) === currentVal) opt.selected = true;
+            selSection.appendChild(opt);
+        });
+
+        const selectedTs = matches.find(ts => String(ts.id) === selSection.value);
+        resolvedId.value = selectedTs ? selectedTs.id : '';
+    }
+
+    const match = TS_DATA.find(ts => String(ts.id) === resolvedId.value);
     const fullyReady = match && examType;
     submitBtn.disabled = !fullyReady;
 
     if (fullyReady) {
         contextText.textContent =
-            `${match.subject_code} — ${match.subject_name} | ${match.section} | `+
-            `${match.semester_name} Sem | ${match.teacher_name} | `+
+            `${match.subject_code} — ${match.subject_name} | ${match.section} | ` +
+            `${match.semester_name} Sem | ${match.teacher_name} | ` +
             `${selExamType.options[selExamType.selectedIndex].text}`;
         contextReveal.classList.remove('hidden');
     } else {
@@ -263,7 +316,12 @@ function resolve() {
     }
 }
 
-// ── Cascade: School Year → Semester ──────────────────────────────────────
+// Section picker change
+selSection.addEventListener('change', function () {
+    resolvedId.value = this.value;
+    resolve();
+});
+
 selSY.addEventListener('change', function () {
     const syId = this.value;
     selSem.innerHTML = '<option value="">— Select semester —</option>';
@@ -275,10 +333,10 @@ selSY.addEventListener('change', function () {
     resetSelect(selTeacher, '— Select teacher —');
     selExamType.disabled = true;
     selExamType.value    = '';
+    sectionField.style.display = 'none';
     resolve();
 });
 
-// ── Cascade: Semester → Subject ───────────────────────────────────────────
 selSem.addEventListener('change', function () {
     const semId = this.value;
     const validSubjectIds = new Set(
@@ -293,10 +351,10 @@ selSem.addEventListener('change', function () {
     resetSelect(selTeacher, '— Select teacher —');
     selExamType.disabled = true;
     selExamType.value    = '';
+    sectionField.style.display = 'none';
     resolve();
 });
 
-// ── Cascade: Subject → Teacher ────────────────────────────────────────────
 selSubject.addEventListener('change', function () {
     const semId     = selSem.value;
     const subjectId = this.value;
@@ -313,36 +371,39 @@ selSubject.addEventListener('change', function () {
     selTeacher.disabled = !subjectId || validTeacherIds.size === 0;
     selExamType.disabled = true;
     selExamType.value    = '';
+    sectionField.style.display = 'none';
     resolve();
 });
 
-// ── Teacher selected → enable exam type ───────────────────────────────────
 selTeacher.addEventListener('change', function () {
+    selExamType.value = '';
+    selExamType.disabled = true;
+    sectionField.style.display = 'none';
+
     const semId     = selSem.value;
     const subjectId = selSubject.value;
     const teacherId = this.value;
-    const hasMatch  = TS_DATA.some(ts =>
+
+    const matches = TS_DATA.filter(ts =>
         String(ts.semester_id) === semId &&
         String(ts.subject_id)  === subjectId &&
         String(ts.teacher_id)  === teacherId
     );
-    selExamType.disabled = !hasMatch;
-    if (!hasMatch) selExamType.value = '';
+
+    if (matches.length > 0) {
+        selExamType.disabled = false;
+    }
     resolve();
 });
 
-// ── Exam type change → final resolve ─────────────────────────────────────
 selExamType.addEventListener('change', resolve);
 
-// ── Auto-select active semester on load ───────────────────────────────────
 @if($activeSemester)
 (function () {
     const activeSyId  = '{{ $activeSemester->school_year_id }}';
     const activeSemId = '{{ $activeSemester->id }}';
     selSY.value = activeSyId;
-    // Trigger SY cascade first
     selSY.dispatchEvent(new Event('change'));
-    // Then set semester after DOM settles
     setTimeout(() => {
         selSem.value = activeSemId;
         selSem.dispatchEvent(new Event('change'));
@@ -350,7 +411,6 @@ selExamType.addEventListener('change', resolve);
 })();
 @endif
 
-// ── File upload UI ────────────────────────────────────────────────────────
 function wireFile(inputId, areaId, labelId) {
     const input = document.getElementById(inputId);
     const area  = document.getElementById(areaId);
@@ -376,12 +436,11 @@ function wireFile(inputId, areaId, labelId) {
 wireFile('master-input', 'master-area', 'master-label');
 wireFile('matrix-input', 'matrix-area', 'matrix-label');
 
-// ── Submit guard ──────────────────────────────────────────────────────────
 document.getElementById('upload-form').addEventListener('submit', function (e) {
     if (!resolvedId.value) {
         e.preventDefault();
-        warning.style.display   = 'block';
-        warning.textContent     = 'Please complete all fields before uploading.';
+        warning.style.display = 'block';
+        warning.textContent   = 'Please complete all fields before uploading.';
         selSY.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 });
