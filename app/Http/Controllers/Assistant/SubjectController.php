@@ -17,11 +17,23 @@ class SubjectController extends Controller
                 'subject.course',
                 'teacher',
                 'semester.schoolYear',
-                'students',
-                'exams',
+                'exams',                   // no examResults here — we'll aggregate below
             ])
             ->latest()
             ->get();
+
+        // For each TeacherSubject, count distinct students via live exam results
+        // (respects deleted exams — only counts what currently exists)
+        $tsIds = $teacherSubjects->pluck('id');
+
+        $studentCounts = \App\Models\ExamResult::query()
+            ->join('exams', 'exam_results.exam_id', '=', 'exams.id')
+            ->join('students', 'exam_results.student_id', '=', 'students.id')
+            ->whereIn('exams.teacher_subject_id', $tsIds)
+            ->select('exams.teacher_subject_id',
+                    \Illuminate\Support\Facades\DB::raw('COUNT(DISTINCT students.student_code) as student_count'))
+            ->groupBy('exams.teacher_subject_id')
+            ->pluck('student_count', 'teacher_subject_id');
 
         $grouped        = $teacherSubjects->groupBy('teacher.teacher_name');
         $teachers       = Teacher::orderBy('teacher_name')->get();
@@ -33,6 +45,7 @@ class SubjectController extends Controller
             'teachers',
             'courses',
             'activeSemester',
+            'studentCounts',   // keyed by teacher_subject_id
         ));
     }
 
