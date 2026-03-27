@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@school.com'],
+            ['email' => 'admin@hcdc.edu.ph'],
             [
                 'name'     => 'Admin',
                 'password' => bcrypt('password'),
@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
         );
 
         User::firstOrCreate(
-            ['email' => 'assistant@school.com'],
+            ['email' => 'assistant@hcdc.edu.ph'],
             [
                 'name'     => 'Maria Assistant',
                 'password' => bcrypt('password'),
