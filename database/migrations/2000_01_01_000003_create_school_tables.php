@@ -104,18 +104,20 @@ return new class extends Migration {
             $table->string('remark'); // 'pass' or 'fail'
             $table->timestamps();
         });
+
+        Schema::create('teacher_notes', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('semester_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('status')->default('no_status');
+            $table->text('notes')->nullable();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+            $table->unique(['teacher_id', 'semester_id']);
+        });
     }
 
-    Schema::create('teacher_notes', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
-        $table->foreignId('semester_id')->nullable()->constrained()->nullOnDelete();
-        $table->string('status')->default('no_status');
-        $table->text('notes')->nullable();
-        $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-        $table->timestamps();
-        $table->unique(['teacher_id', 'semester_id']);
-    });
+
 
     public function down(): void {
         Schema::dropIfExists('exam_results');
