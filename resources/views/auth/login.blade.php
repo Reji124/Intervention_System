@@ -248,7 +248,7 @@
         input[type="email"],
         input[type="password"] {
             width: 100%;
-            padding: 12px 14px 12px 42px;
+            padding: 12px 42px 12px 42px;
             font-family: 'DM Sans', sans-serif;
             font-size: 14px;
             background: var(--input-bg);
