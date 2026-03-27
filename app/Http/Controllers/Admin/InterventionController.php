@@ -236,35 +236,60 @@ class InterventionController extends Controller
     // TEACHER NOTES
     // ══════════════════════════════════════════════════════════════════════════
 
-    public function upsertNote(Request $request, Teacher $teacher)
-    {
-        $request->validate([
-            'semester_id' => 'nullable|exists:semesters,id',
-            'status'      => 'required|in:no_status,on_track,needs_followup,intervention_active,resolved',
-            'notes'       => 'nullable|string|max:5000',
+public function upsertNote(Request $request, Teacher $teacher)
+{
+    Log::info('upsertNote called', [
+        'teacher_id'  => $teacher->id,
+        'semester_id' => $request->semester_id,
+        'status'      => $request->status,
+        'notes'       => $request->notes,
+    ]);
+
+    $request->validate([
+        'semester_id' => 'nullable|exists:semesters,id',
+        'status'      => 'required|in:no_status,on_track,needs_followup,intervention_active,resolved',
+        'notes'       => 'nullable|string|max:5000',
+    ]);
+
+    $semesterId = $request->semester_id ?: null;
+
+    $note = TeacherNote::where('teacher_id', $teacher->id)
+        ->where(function ($q) use ($semesterId) {
+            if ($semesterId) {
+                $q->where('semester_id', $semesterId);
+            } else {
+                $q->whereNull('semester_id');
+            }
+        })
+        ->first();
+
+    if ($note) {
+        $note->update([
+            'status'     => $request->status,
+            'notes'      => $request->notes,
+            'updated_by' => Auth::id(),
         ]);
-
-        $note = TeacherNote::updateOrCreate(
-            [
-                'teacher_id'  => $teacher->id,
-                'semester_id' => $request->semester_id ?: null,
-            ],
-            [
-                'status'     => $request->status,
-                'notes'      => $request->notes,
-                'updated_by' => Auth::id(),
-            ]
-        );
-
-        return response()->json([
-            'success'      => true,
-            'status'       => $note->status,
-            'status_label' => $note->status_label,
-            'notes'        => $note->notes,
-            'updated_by'   => $note->updatedByUser?->name ?? 'Admin',
-            'updated_at'   => $note->updated_at->format('M d, Y g:i A'),
+    } else {
+        $note = TeacherNote::create([
+            'teacher_id'  => $teacher->id,
+            'semester_id' => $semesterId,
+            'status'      => $request->status,
+            'notes'       => $request->notes,
+            'updated_by'  => Auth::id(),
         ]);
     }
+
+    $note->load('updatedByUser');
+
+    return response()->json([
+        'success'      => true,
+        'status'       => $note->status,
+        'status_label' => $note->status_label,
+        'notes'        => $note->notes,
+        'updated_by'   => $note->updatedByUser?->name ?? 'Admin',
+        'updated_at'   => $note->updated_at->format('M d, Y g:i A'),
+    ]);
+}
 
     // ══════════════════════════════════════════════════════════════════════════
     // MASS DELETE (scoped to current filters)
