@@ -46,6 +46,14 @@
         @error('subject_code')<p class="field-error">{{ $message }}</p>@enderror
     </div>
 
+        {{-- Subject Name --}}
+    <div class="field">
+        <label>Subject Name <span class="req">*</span></label>
+        <input type="text" name="subject_name" value="{{ old('subject_name') }}"
+               placeholder="e.g. Introduction to Programming" required>
+        @error('subject_name')<p class="field-error">{{ $message }}</p>@enderror
+    </div>
+
     {{-- Year Level --}}
     <div class="field">
         <label>Year Level <span class="req">*</span></label>
@@ -58,14 +66,6 @@
             @endforeach
         </select>
         @error('year_level')<p class="field-error">{{ $message }}</p>@enderror
-    </div>
-
-    {{-- Subject Name --}}
-    <div class="field">
-        <label>Subject Name <span class="req">*</span></label>
-        <input type="text" name="subject_name" value="{{ old('subject_name') }}"
-               placeholder="e.g. Introduction to Programming" required>
-        @error('subject_name')<p class="field-error">{{ $message }}</p>@enderror
     </div>
 
     <div class="form-actions">
