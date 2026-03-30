@@ -204,9 +204,7 @@
 </div>
 
 @php
-    {{-- Group subjects by department, then by year level (1→4) --}}
-    $grouped = $subjects->groupBy(fn($s) => $s->department->department_name)
-                        ->sortKeys();
+    $grouped = $subjects->groupBy(function($s) { return $s->department->department_name; })->sortKeys();
 @endphp
 
 @forelse($grouped as $deptName => $deptSubjects)

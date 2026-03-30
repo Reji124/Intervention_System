@@ -131,26 +131,38 @@
         margin: 0;
         padding: 0;
         list-style: none;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
+        counter-reset: course-counter;
     }
 
-    .course-chip {
+    .course-list li {
+        counter-increment: course-counter;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 5px 0;
+        font-size: 0.85rem;
+        color: #374151;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .course-list li:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .course-list li::before {
+        content: counter(course-counter);
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
         background: #f3f4f6;
         border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 3px 10px;
-        font-size: 0.8rem;
-        color: #374151;
-        font-weight: 500;
-    }
-
-    .course-chip svg {
-        color: #9ca3af;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #6b7280;
         flex-shrink: 0;
     }
 
@@ -224,15 +236,7 @@
             <hr class="dept-divider">
             <ul class="course-list">
                 @foreach($dept->courses as $course)
-                <li>
-                    <span class="course-chip">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                        </svg>
-                        {{ $course->course_name }}
-                    </span>
-                </li>
+                <li>{{ $course->course_name }}</li>
                 @endforeach
             </ul>
         @else
