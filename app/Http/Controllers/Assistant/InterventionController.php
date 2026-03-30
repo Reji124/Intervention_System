@@ -12,10 +12,9 @@ use Illuminate\Http\Request;
 
 class InterventionController extends Controller
 {
+
     public function index()
     {
-        // Load ALL teacher-subjects that have at least one exam result,
-        // regardless of pass/fail — so ALL subjects show up per teacher.
         $teacherSubjects = TeacherSubject::with([
                 'teacher',
                 'subject',
@@ -26,30 +25,50 @@ class InterventionController extends Controller
             ->orderBy('teacher_id')
             ->get();
 
-        // Build: teacher_name → [ label → subjectData ]
         $grouped = $teacherSubjects
+            ->filter(fn($ts) => $ts->teacher && $ts->subject)
             ->groupBy(fn($ts) => $ts->teacher->teacher_name)
             ->map(fn($teacherTSList) =>
-                $teacherTSList->mapWithKeys(function ($ts) {
-                    $allResults     = $ts->exams->flatMap(fn($e) => $e->examResults);
-                    $failingResults = $allResults->where('remark', 'fail')->sortBy('percentage')->values();
+                $teacherTSList->groupBy(function ($ts) {
+                    return $ts->subject->subject_code
+                        . ' — ' . $ts->subject->subject_name
+                        . ($ts->section ? ' (' . $ts->section . ')' : '');
+                })->map(function ($subjectTSList) {
 
-                    // Prefer exam with matrix data, fall back to any exam
-                    $examWithMatrix = $ts->exams->first(fn($e) => !empty($e->item_matrix_data));
-                    $anyExam        = $ts->exams->first();
+                    $allSubjectResults = $subjectTSList->flatMap(
+                        fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
+                    );
 
-                    $label = $ts->subject->subject_code . ' — ' . $ts->section;
+                    // Group by exam_type within this subject
+                    $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
+                        ->groupBy('exam_type')
+                        ->map(function ($examsOfType) {
+                            $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
+                            $failingResults = $allResults->where('remark', 'fail')
+                                                        ->sortBy('percentage')
+                                                        ->values();
+                            $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
+                            $anyExam        = $examsOfType->first();
 
-                    return [$label => [
-                        'teacher_subject' => $ts,
-                        'label'           => $label,
-                        'all_results'     => $allResults,
-                        'failing_results' => $failingResults,
-                        'pass_count'      => $allResults->where('remark', 'pass')->count(),
-                        'fail_count'      => $failingResults->count(),
-                        'total_count'     => $allResults->count(),
-                        'exam'            => $examWithMatrix ?? $anyExam,
-                    ]];
+                            return [
+                                'all_results'     => $allResults,
+                                'failing_results' => $failingResults,
+                                'pass_count'      => $allResults->where('remark', 'pass')->count(),
+                                'fail_count'      => $failingResults->count(),
+                                'total_count'     => $allResults->count(),
+                                'exam'            => $examWithMatrix ?? $anyExam,
+                            ];
+                        });
+
+                    return [
+                        'exam_types'  => $examTypes,
+                        'pass_count'  => $allSubjectResults->where('remark', 'pass')->count(),
+                        'fail_count'  => $allSubjectResults->where('remark', 'fail')->count(),
+                        'total_count' => $allSubjectResults->count(),
+                        'pass_rate'   => $allSubjectResults->count() > 0
+                            ? round(($allSubjectResults->where('remark', 'pass')->count() / $allSubjectResults->count()) * 100)
+                            : 0,
+                    ];
                 })
             );
 
@@ -64,7 +83,7 @@ class InterventionController extends Controller
             'activeSemester',
         ));
     }
-
+    
     public function updateResult(Request $request, ExamResult $examResult)
     {
         $request->validate([
