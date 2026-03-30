@@ -194,20 +194,36 @@
 .subject-body { display: none; }
 .subject-body.open { display: block; }
 
-/* ── Uploader badge ───────────────────────────────────────────────────────── */
-.uploader-badge {
+/* ── Status badges (matrix / upload indicators only) ──────────────────────── */
+.indicator-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 10px;
-    font-weight: 500;
-    background: #f0ece3;
-    color: var(--text-mid);
+    font-weight: 600;
     white-space: nowrap;
 }
-.uploader-badge svg { width: 10px; height: 10px; flex-shrink: 0; }
+.indicator-badge.has-matrix   { background: var(--green-bg); color: var(--green); }
+.indicator-badge.no-matrix    { background: #f0ece3; color: var(--text-soft); }
+.indicator-badge.has-list     { background: #eef3ff; color: var(--blue, #2563eb); }
+.indicator-badge svg { width: 9px; height: 9px; }
+
+/* ── Count pill (small, neutral) ─────────────────────────────────────────── */
+.count-pill-sm {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 8px;
+    background: #f0ece3;
+    border: 1px solid #e0d9cf;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+}
+.count-pill-sm svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────────── */
 .subject-tabs {
@@ -230,10 +246,8 @@
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
-/* ── Badges ───────────────────────────────────────────────────────────────── */
+/* ── Exam type badge ──────────────────────────────────────────────────────── */
 .badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-.badge-pass    { background: var(--green-bg); color: var(--green); }
-.badge-fail    { background: var(--red-bg);   color: var(--red); }
 .badge-prelim  { background: var(--amber-bg); color: var(--amber); }
 .badge-midterm { background: var(--blue-bg);  color: var(--blue); }
 .badge-final   { background: #f0ebfa;         color: #534ab7; }
@@ -262,27 +276,6 @@ table.master-tbl { width: 100%; border-collapse: collapse; }
 .master-tbl tbody tr:hover td { background: #faf8f5; }
 .td-name { font-weight: 500; color: var(--text-dark); }
 .td-code { font-size: 11px; color: var(--text-soft); margin-top: 1px; }
-.pct-fail { font-weight: 600; color: var(--red); }
-.pct-pass { font-weight: 600; color: var(--green); }
-
-/* ── Row actions ──────────────────────────────────────────────────────────── */
-.row-actions { display: flex; gap: 6px; align-items: center; }
-.btn-edit-row {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
-    background: #f0f5ff; color: var(--blue); border: 1px solid #b5d4f4;
-    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s;
-}
-.btn-edit-row:hover { background: #dbeafe; }
-.btn-edit-row svg { width: 11px; height: 11px; }
-.btn-del-row {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
-    background: var(--red-bg); color: var(--red); border: 1px solid #f5c6c6;
-    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s;
-}
-.btn-del-row:hover { background: #fde8e8; }
-.btn-del-row svg { width: 11px; height: 11px; }
 
 /* ── Matrix ───────────────────────────────────────────────────────────────── */
 .matrix-wrap-inner { overflow-x: auto; padding: 16px 22px; }
@@ -333,34 +326,12 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
 .empty-state p { font-size: 13px; color: var(--text-soft); }
 .empty-row { padding: 20px 22px; font-size: 13px; color: var(--text-soft); font-style: italic; }
 
-/* ── Edit modal ───────────────────────────────────────────────────────────── */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.modal-backdrop.hidden { display: none; }
-.modal { background: var(--white, #fff); border-radius: 14px; width: 100%; max-width: 420px; overflow: hidden; animation: modalIn .2s ease both; }
-@keyframes modalIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
-.modal-header { padding: 18px 22px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.modal-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--text-dark); }
-.modal-close { width: 28px; height: 28px; border-radius: 50%; border: none; background: #f0ece3; color: var(--text-mid); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; }
-.modal-close:hover { background: var(--border); }
-.modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
-.modal-field { display: flex; flex-direction: column; gap: 5px; }
-.modal-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--text-soft); }
-.modal-field input { padding: 9px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: #faf8f5; border: 1.5px solid var(--border); border-radius: 8px; color: var(--text-dark); outline: none; transition: border-color .2s; }
-.modal-field input:focus { border-color: var(--teal-light); background: var(--white, #fff); }
-.modal-preview { display: flex; gap: 10px; padding: 10px 14px; background: #f0faf7; border: 1px solid #9fe1cb; border-radius: 8px; font-size: 12px; color: var(--teal); }
-.modal-preview span { font-weight: 600; }
-.modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
-.btn-modal-cancel { padding: 9px 18px; background: transparent; color: var(--text-mid); border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; }
-.btn-modal-save { padding: 9px 20px; background: var(--navy); color: var(--white, #fff); border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; }
-.btn-modal-save:hover { background: #1e3050; }
-.btn-modal-save:disabled { opacity: .6; cursor: not-allowed; }
-
 @media print {
     .report-bar { background: #fff !important; padding: 0 !important; margin: 0 0 24px !important; }
     .report-bar::before { display: none; }
     .report-bar-left h2 { color: #000 !important; }
     .report-bar-left p { color: #555 !important; }
-    .btn-print, .expand-all-btn, .subject-tabs, .row-actions { display: none !important; }
+    .btn-print, .expand-all-btn, .subject-tabs { display: none !important; }
     .teacher-body, .subject-body, .tab-panel { display: block !important; }
     .sidebar, .topbar { display: none !important; }
     .main { margin-left: 0 !important; }
@@ -375,7 +346,7 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
     <div class="report-bar-inner">
         <div class="report-bar-left">
             <h2>Intervention report</h2>
-            <p>All subjects with exam results — review and manage student masterlist</p>
+            <p>Monitor uploaded masterlists and item analysis matrices per teacher and subject</p>
         </div>
         <button class="btn-print" onclick="window.print()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
@@ -404,13 +375,13 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
 @php
     $tTotal = $subjectMap->sum('total_count');
     $inits  = collect(explode(' ', $teacherName))
-                ->map(function($w) { return strtoupper(substr($w, 0, 1)); })
+                ->map(fn($w) => strtoupper(substr($w, 0, 1)))
                 ->take(2)->implode('');
 @endphp
 
 <div class="teacher-block">
 
-    {{-- Teacher header --}}
+    {{-- ── Teacher header ── --}}
     <div class="teacher-header" onclick="toggleTeacher(this)">
         <div class="teacher-info">
             <div class="teacher-avatar">{{ $inits }}</div>
@@ -437,18 +408,16 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
         </div>
     </div>
 
-    {{-- Teacher body --}}
+    {{-- ── Teacher body ── --}}
     <div class="teacher-body">
 
         @foreach($subjectMap as $subjectLabel => $subjectData)
         @php
-            $sPass  = $subjectData['pass_count'];
-            $sFail  = $subjectData['fail_count'];
-            $sTotal = $subjectData['total_count'];
-            $sRate  = $subjectData['pass_rate'];
+            $sTotal    = $subjectData['total_count'];
+            $examTypes = $subjectData['exam_types'];
         @endphp
 
-        {{-- Subject block --}}
+        {{-- ── Subject block ── --}}
         <div class="subject-block" style="border-bottom: 2px solid var(--border)">
 
             <div class="subject-header" onclick="toggleSubject(this)">
@@ -461,14 +430,14 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                     {{ $subjectLabel }}
                 </div>
                 <div class="subject-pills">
-                    <span style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 10px;border-radius:7px;background:var(--amber-bg);color:var(--amber);font-size:10px;font-weight:700;min-width:48px">
-                        <span style="font-family:'DM Serif Display',serif;font-size:15px;line-height:1">{{ $sRate }}%</span>
-                        <span style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Pass rate</span>
+                    {{-- Student count only, no pass/fail stats --}}
+                    <span class="count-pill-sm">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        {{ $sTotal }} {{ Str::plural('student', $sTotal) }}
                     </span>
-                    <span class="badge badge-pass" style="padding:3px 9px">{{ $sPass }} pass</span>
-                    @if($sFail > 0)
-                    <span class="badge badge-fail" style="padding:3px 9px">{{ $sFail }} fail</span>
-                    @endif
                     <svg class="sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          style="width:14px;height:14px;color:var(--text-soft);transition:transform .2s">
                         <polyline points="6 9 12 15 18 9"/>
@@ -476,10 +445,10 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                 </div>
             </div>
 
-            {{-- Subject body: exam-type sub-accordions --}}
+            {{-- ── Subject body: exam types ── --}}
             <div class="subject-body">
 
-                @foreach($subjectData['exam_types'] as $examType => $examData)
+                @foreach($examTypes as $examType => $examData)
                 @php
                     $exam       = $examData['exam'];
                     $hasMatrix  = !empty($exam?->item_matrix_data);
@@ -495,14 +464,11 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                         if (in_array($col, ['.15-.24', '.25-.29'])) return 'chip-needs-revision';
                         return 'chip-acceptable';
                     };
-                    $tabId  = 'tab-' . md5($teacherName . $subjectLabel . $examType);
-                    $etPass  = $examData['pass_count'];
-                    $etFail  = $examData['fail_count'];
+                    $tabId   = 'tab-' . md5($teacherName . $subjectLabel . $examType);
                     $etTotal = $examData['total_count'];
-                    $etRate  = $etTotal > 0 ? round(($etPass / $etTotal) * 100) : 0;
                 @endphp
 
-                {{-- Exam-type sub-block --}}
+                {{-- ── Exam-type sub-block ── --}}
                 <div class="subject-block" style="background:#fdfcfa">
 
                     <div class="subject-header" style="padding-left:38px" onclick="toggleSubject(this)">
@@ -511,20 +477,32 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                                   style="padding:2px 10px;font-size:11px;font-weight:700;letter-spacing:.4px">
                                 {{ ucfirst($examType) }}
                             </span>
-                            @if($hasMatrix)
-                            <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:1px 7px;border-radius:10px">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:9px;height:9px"><polyline points="20 6 9 17 4 12"/></svg>Matrix
-                            </span>
-                            @endif
                         </div>
                         <div class="subject-pills">
-                            <span style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 10px;border-radius:7px;background:var(--green-bg);color:var(--green);font-size:10px;font-weight:700;min-width:48px">
-                                <span style="font-family:'DM Serif Display',serif;font-size:15px;line-height:1">{{ $etRate }}%</span>
-                                <span style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Pass rate</span>
+                            {{-- Student count only ── --}}
+                            <span class="count-pill-sm">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                </svg>
+                                {{ $etTotal }} {{ Str::plural('student', $etTotal) }}
                             </span>
-                            <span class="badge badge-pass" style="padding:3px 9px">{{ $etPass }} pass</span>
-                            @if($etFail > 0)
-                            <span class="badge badge-fail" style="padding:3px 9px">{{ $etFail }} fail</span>
+                            {{-- Upload status indicators ── --}}
+                            @if($examData['all_results']->count())
+                            <span class="indicator-badge has-list">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Masterlist
+                            </span>
+                            @else
+                            <span class="indicator-badge no-matrix">No masterlist</span>
+                            @endif
+                            @if($hasMatrix)
+                            <span class="indicator-badge has-matrix">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Matrix
+                            </span>
+                            @else
+                            <span class="indicator-badge no-matrix">No matrix</span>
                             @endif
                             <svg class="sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                  style="width:14px;height:14px;color:var(--text-soft);transition:transform .2s">
@@ -535,13 +513,10 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
 
                     <div class="subject-body">
 
-                        {{-- Tabs --}}
+                        {{-- Tabs ── --}}
                         <div class="subject-tabs">
                             <div class="subject-tab active" onclick="switchTab(this, '{{ $tabId }}-students')">
                                 Students ({{ $etTotal }})
-                                @if($etFail > 0)
-                                <span style="display:inline-flex;align-items:center;margin-left:4px;padding:1px 6px;background:var(--red-bg);color:var(--red);border-radius:8px;font-size:10px">{{ $etFail }} failing</span>
-                                @endif
                             </div>
                             @if($hasMatrix)
                             <div class="subject-tab" onclick="switchTab(this, '{{ $tabId }}-matrix')">
@@ -550,7 +525,7 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                             @endif
                         </div>
 
-                        {{-- Students tab --}}
+                        {{-- ── Students tab ── --}}
                         <div id="{{ $tabId }}-students" class="tab-panel active">
                             @if($examData['all_results']->count())
                             <table class="master-tbl">
@@ -561,50 +536,28 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                                         <th>Raw score</th>
                                         <th>Percentage</th>
                                         <th>Remark</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="tbody-{{ $tabId }}">
-                                    @foreach($examData['all_results']->sortBy('percentage') as $i => $result)
+                                <tbody>
+                                    @foreach($examData['all_results']->sortBy('student.student_name') as $i => $result)
                                     @if(!$result->student) @continue @endif
-                                    <tr id="arow-{{ $result->id }}">
+                                    <tr>
                                         <td style="color:var(--text-soft);font-size:11px">{{ $i + 1 }}</td>
                                         <td>
                                             <div class="td-name">{{ $result->student->student_name }}</div>
                                             <div class="td-code">{{ $result->student->student_code }}</div>
                                         </td>
-                                        <td id="ascore-{{ $result->id }}">{{ $result->raw_score }}</td>
+                                        <td>{{ $result->raw_score }}</td>
+                                        <td>{{ $result->percentage }}%</td>
                                         <td>
-                                            <span id="apct-{{ $result->id }}"
-                                                  class="{{ $result->remark === 'fail' ? 'pct-fail' : 'pct-pass' }}">
-                                                {{ $result->percentage }}%
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span id="abadge-{{ $result->id }}"
-                                                  class="badge badge-{{ $result->remark }}">
+                                            <span style="
+                                                display:inline-block;font-size:10px;font-weight:600;
+                                                padding:2px 8px;border-radius:20px;
+                                                background:{{ $result->remark === 'pass' ? 'var(--green-bg)' : 'var(--red-bg)' }};
+                                                color:{{ $result->remark === 'pass' ? 'var(--green)' : 'var(--red)' }};
+                                            ">
                                                 {{ ucfirst($result->remark) }}
                                             </span>
-                                        </td>
-                                        <td>
-                                            <div class="row-actions">
-                                                <button class="btn-edit-row"
-                                                        onclick="openEdit({{ $result->id }}, {{ $result->raw_score }})">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                    </svg>
-                                                    Edit
-                                                </button>
-                                                <button class="btn-del-row"
-                                                        onclick="deleteResult({{ $result->id }})">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <polyline points="3 6 5 6 21 6"/>
-                                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                                    </svg>
-                                                    Delete
-                                                </button>
-                                            </div>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -615,7 +568,7 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
                             @endif
                         </div>{{-- /students tab --}}
 
-                        {{-- Matrix tab --}}
+                        {{-- ── Matrix tab ── --}}
                         @if($hasMatrix)
                         <div id="{{ $tabId }}-matrix" class="tab-panel">
                             <div class="matrix-wrap-inner">
@@ -698,40 +651,10 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
 @endforeach {{-- grouped --}}
 @endif
 
-{{-- ── Edit modal ── --}}
-<div class="modal-backdrop hidden" id="edit-modal">
-    <div class="modal">
-        <div class="modal-header">
-            <span class="modal-title">Edit exam result</span>
-            <button class="modal-close" onclick="closeEdit()">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="modal-field">
-                <label>Raw score</label>
-                <input type="number" id="edit-raw" min="0" placeholder="e.g. 28">
-            </div>
-            <div class="modal-field">
-                <label>Total items</label>
-                <input type="number" id="edit-total" min="1" placeholder="e.g. 50">
-            </div>
-            <div class="modal-preview" id="edit-preview" style="display:none">
-                Percentage: <span id="preview-pct">—</span> &nbsp;·&nbsp; Remark: <span id="preview-remark">—</span>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-modal-cancel" onclick="closeEdit()">Cancel</button>
-            <button class="btn-modal-save" id="save-btn" onclick="saveEdit()">Save changes</button>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @push('scripts')
 <script>
-const CSRF = '{{ csrf_token() }}';
-let editingResultId = null;
-
 // ── Accordion helpers ─────────────────────────────────────────────────────
 function toggleTeacher(header) {
     const body = header.nextElementSibling;
@@ -761,82 +684,5 @@ function expandAll() {
     chevs.forEach(c  => c.classList.toggle('open', !anyOpen));
     btn.textContent = anyOpen ? 'Expand all' : 'Collapse all';
 }
-
-// ── Edit modal ────────────────────────────────────────────────────────────
-function openEdit(resultId, rawScore) {
-    editingResultId = resultId;
-    document.getElementById('edit-raw').value   = rawScore;
-    document.getElementById('edit-total').value = '';
-    document.getElementById('edit-preview').style.display = 'none';
-    document.getElementById('edit-modal').classList.remove('hidden');
-    document.getElementById('edit-raw').focus();
-}
-function closeEdit() {
-    document.getElementById('edit-modal').classList.add('hidden');
-    editingResultId = null;
-}
-
-['edit-raw','edit-total'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-        const raw   = parseInt(document.getElementById('edit-raw').value);
-        const total = parseInt(document.getElementById('edit-total').value);
-        const prev  = document.getElementById('edit-preview');
-        if (raw >= 0 && total > 0) {
-            const pct    = ((raw / total) * 100).toFixed(2);
-            const remark = pct >= 75 ? 'Pass' : 'Fail';
-            document.getElementById('preview-pct').textContent    = pct + '%';
-            document.getElementById('preview-remark').textContent = remark;
-            document.getElementById('preview-remark').style.color = pct >= 75 ? 'var(--green)' : 'var(--red)';
-            prev.style.display = 'flex';
-        } else {
-            prev.style.display = 'none';
-        }
-    });
-});
-
-async function saveEdit() {
-    const raw   = parseInt(document.getElementById('edit-raw').value);
-    const total = parseInt(document.getElementById('edit-total').value);
-    if (isNaN(raw) || isNaN(total) || total < 1) {
-        alert('Please enter a valid raw score and total items.');
-        return;
-    }
-    const btn = document.getElementById('save-btn');
-    btn.disabled = true; btn.textContent = 'Saving…';
-    try {
-        const res  = await fetch(`/assistant/exam-results/${editingResultId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify({ raw_score: raw, total })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById(`ascore-${editingResultId}`).textContent = data.raw_score;
-            const pctEl = document.getElementById(`apct-${editingResultId}`);
-            pctEl.textContent = data.percentage + '%';
-            pctEl.className = data.remark === 'fail' ? 'pct-fail' : 'pct-pass';
-            const badgeEl = document.getElementById(`abadge-${editingResultId}`);
-            badgeEl.textContent = data.remark.charAt(0).toUpperCase() + data.remark.slice(1);
-            badgeEl.className = `badge badge-${data.remark}`;
-            closeEdit();
-        }
-    } finally {
-        btn.disabled = false; btn.textContent = 'Save changes';
-    }
-}
-
-async function deleteResult(resultId) {
-    if (!confirm('Delete this student result? This cannot be undone.')) return;
-    const res  = await fetch(`/assistant/exam-results/${resultId}`, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': CSRF }
-    });
-    const data = await res.json();
-    if (data.success) document.getElementById(`arow-${resultId}`)?.remove();
-}
-
-document.getElementById('edit-modal').addEventListener('click', function(e) {
-    if (e.target === this) closeEdit();
-});
 </script>
 @endpush
