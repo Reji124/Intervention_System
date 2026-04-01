@@ -64,7 +64,7 @@
     .ok-badge   { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; background:var(--green-bg); color:var(--green); }
 
     /* ── Exam type breakdown ────────────────────────────────────────────────── */
-    .breakdown-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+    .breakdown-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
     .breakdown-item { padding:20px 22px; border-right:1px solid var(--border); }
     .breakdown-item:last-child { border-right:none; }
     .breakdown-type { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--text-soft); margin-bottom:12px; }
@@ -95,11 +95,12 @@
     .empty-row td { text-align:center; color:var(--text-soft); padding:32px !important; font-size:13px; }
 
     .badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
-    .badge-pass   { background:var(--green-bg); color:var(--green); }
-    .badge-fail   { background:var(--red-bg);   color:var(--red); }
-    .badge-prelim { background:var(--amber-bg); color:var(--amber); }
+    .badge-pass      { background:var(--green-bg); color:var(--green); }
+    .badge-fail      { background:var(--red-bg);   color:var(--red); }
+    .badge-prelim    { background:var(--amber-bg); color:var(--amber); }
     .badge-mid,.badge-midterm { background:var(--blue-bg); color:var(--blue); }
-    .badge-final  { background:#f0ebfa; color:#534ab7; }
+    .badge-pre-final { background:#fef0f8; color:#b0479a; }
+    .badge-final     { background:#f0ebfa; color:#534ab7; }
 </style>
 @endpush
 
@@ -165,7 +166,7 @@
         <span style="font-size:12px;color:var(--text-soft)">Pass rate per exam type — all teachers</span>
     </div>
     <div class="breakdown-grid">
-        @foreach(['prelim' => 'Prelim', 'midterm' => 'Midterm', 'final' => 'Final'] as $type => $label)
+        @foreach(['prelim' => 'Prelim', 'midterm' => 'Midterm', 'pre_final' => 'Pre-Final', 'final' => 'Final'] as $type => $label)
         @php
             $data      = $examBreakdown[$type] ?? ['pass_rate' => 0, 'pass' => 0, 'fail' => 0, 'total' => 0];
             $rate      = $data['pass_rate'];
