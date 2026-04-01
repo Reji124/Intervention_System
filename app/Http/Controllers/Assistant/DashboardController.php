@@ -19,9 +19,9 @@ class DashboardController extends Controller
 
         $totalExamsUploaded = Exam::count();
 
-        // Pending = every teacher-subject combo × 3 exam types, minus what's uploaded.
+        // Pending = every teacher-subject combo × 4 exam types, minus what's uploaded.
         // We treat each (teacher_subject_id, exam_type) pair as one expected exam slot.
-        $totalExpectedExams = TeacherSubject::count() * 3; // prelim, midterm, final
+        $totalExpectedExams = TeacherSubject::count() * 4; // prelim, midterm, Pre-Finals, final
         $examsPendingUpload = max(0, $totalExpectedExams - $totalExamsUploaded);
 
         // ── Recent exams uploaded — grouped by semester ───────────────────────
