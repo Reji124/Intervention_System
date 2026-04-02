@@ -207,85 +207,67 @@
     $grouped = $subjects->groupBy(function($s) { return $s->department->department_name; })->sortKeys();
 @endphp
 
-@forelse($grouped as $deptName => $deptSubjects)
+{{-- Replace the @php grouped block and @forelse with this --}}
+
+@forelse($subjects as $subject)
 <div class="dept-section">
     <div class="dept-card">
-
-        {{-- Department header --}}
         <div class="dept-card-header">
-            <span class="dept-card-title">{{ $deptName }}</span>
-            <span class="dept-card-count">{{ $deptSubjects->count() }} {{ Str::plural('subject', $deptSubjects->count()) }}</span>
+            <span class="dept-card-title">{{ $subject->subject_name }}</span>
+            <span class="dept-card-count" style="background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe">
+                {{ $subject->subject_code }}
+            </span>
+            <span class="dept-card-count">
+                Year {{ $subject->year_level }}
+            </span>
+            <span class="badge-category" style="margin-left:4px">{{ $subject->category }}</span>
         </div>
 
         <table>
             <thead>
                 <tr>
-                    <th>Subject</th>
+                    <th>Department</th>
                     <th>Course</th>
-                    <th>Category</th>
-                    <th>Year Level</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
-            @php
-                $byYear = $deptSubjects->groupBy('year_level')->sortKeys();
-            @endphp
-
-            @forelse($byYear as $yearLevel => $yearSubjects)
-                {{-- Year level separator row --}}
-                <tr>
-                    <td colspan="5" style="padding:0;border-bottom:none;">
-                        <div class="year-group-label">Year {{ $yearLevel }}</div>
-                    </td>
-                </tr>
-
-                @foreach($yearSubjects->sortBy('subject_name') as $subject)
-                <tr>
-                    <td>
-                        <span class="td-main">{{ $subject->subject_name }}</span>
-                        <span class="td-sub">{{ $subject->subject_code }}</span>
-                    </td>
-                    <td>{{ $subject->course->course_name }}</td>
-                    <td><span class="badge-category">{{ $subject->category }}</span></td>
-                    <td>Year {{ $subject->year_level }}</td>
-                    <td>
-                        <div class="action-group">
-                            {{-- Edit --}}
-                            <a href="{{ route('admin.subjects.edit', $subject) }}" class="btn-action btn-action-edit">
+            @foreach($subject->courses as $course)
+            <tr>
+                <td>{{ $course->department->department_name ?? '—' }}</td>
+                <td>{{ $course->course_name }}</td>
+                <td>
+                    @if($loop->first)
+                    {{-- Edit/Delete only shown once per subject --}}
+                    <div class="action-group">
+                        <a href="{{ route('admin.subjects.edit', $subject) }}" class="btn-action btn-action-edit">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            Edit
+                        </a>
+                        <form class="delete-form" method="POST"
+                              action="{{ route('admin.subjects.destroy', $subject) }}"
+                              onsubmit="return confirm('Delete {{ $subject->subject_name }}?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn-action btn-action-delete">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                    <path d="M10 11v6"/><path d="M14 11v6"/>
+                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                                 </svg>
-                                Edit
-                            </a>
-
-                            {{-- Delete --}}
-                            <form class="delete-form" method="POST" action="{{ route('admin.subjects.destroy', $subject) }}"
-                                  onsubmit="return confirm('Delete {{ $subject->subject_name }}?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn-action btn-action-delete">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                        <path d="M10 11v6"/><path d="M14 11v6"/>
-                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                                    </svg>
-                                    Delete
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                @endforeach
-
-            @empty
-                <tr><td colspan="5" class="empty-cell">No subjects in this department.</td></tr>
-            @endforelse
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                    @endif
+                </td>
+            </tr>
+            @endforeach
             </tbody>
         </table>
-
     </div>
 </div>
 @empty

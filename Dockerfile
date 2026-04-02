@@ -1,6 +1,6 @@
 FROM php:8.3-fpm
 
-# Install system dependencies + Python
+# Install system dependencies + Python + Node
 RUN apt-get update && apt-get install -y \
     git curl libpng-dev libonig-dev libxml2-dev zip unzip \
     libzip-dev libfreetype6-dev libjpeg62-turbo-dev libpq-dev \
@@ -9,18 +9,18 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
-# Install Composer
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
 COPY . .
 
-# Create necessary directories
+# Storage & cache dirs
 RUN mkdir -p /var/www/storage/framework/{sessions,views,cache} \
     && mkdir -p /var/www/storage/logs \
     && mkdir -p /var/www/bootstrap/cache
@@ -28,7 +28,7 @@ RUN mkdir -p /var/www/storage/framework/{sessions,views,cache} \
 RUN composer install --no-dev --optimize-autoloader
 RUN npm install && npm run build
 
-# Install Python dependencies for PDF parsing
+# Python deps
 RUN pip3 install pdfplumber --break-system-packages
 
 RUN cp .env.example .env && php artisan key:generate --force
@@ -36,9 +36,9 @@ RUN cp .env.example .env && php artisan key:generate --force
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 8000
+
+# migrate:fresh wipes and rebuilds from the single migration, then seeds
 CMD php artisan config:clear && \
     php artisan config:cache && \
-    php artisan migrate --force && \
+    php artisan migrate:fresh --seed --force && \
     php artisan serve --host=0.0.0.0 --port=8000
-
-#php artisan migrate:fresh --force && \ so you don't lose data on every deploy. 

@@ -1,45 +1,66 @@
 <?php
 
-// app/Http/Controllers/Admin/SubjectController.php
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
 use App\Models\Department;
 use App\Models\Subject;
-use App\Models\SubjectCategory;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SubjectController extends Controller
 {
     public function index()
     {
-        $subjects = Subject::with(['department', 'course'])->orderBy('subject_name')->get();
-return view('admin.subjects.index', compact('subjects'));
+        // Load each subject with its course+department pivot rows
+        $subjects = Subject::with(['courses.department'])
+                        ->orderBy('subject_name')
+                        ->get();
+
+        return view('admin.subjects.index', compact('subjects'));
     }
 
     public function create()
     {
-       $departments = Department::with('courses')->orderBy('department_name')->get();
-        $allCourses  = \App\Models\Course::orderBy('course_name')->get();
-return view('admin.subjects.create', compact('departments', 'allCourses'));
+        $departments = Department::with('courses')->orderBy('department_name')->get();
+
+        return view('admin.subjects.create', compact('departments'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'department_id' => 'required|exists:departments,id',
-            'course_id'     => 'required|exists:courses,id',
-            'category'      => 'required|string|max:255',
-            'subject_code'  => 'required|string|max:50|unique:subjects',
-            'year_level'    => 'required|integer|min:1|max:5',
-            'subject_name'  => 'required|string|max:255',
+        $data = $request->validate([
+            'subject_code'   => 'required|string|max:50|unique:subjects,subject_code',
+            'subject_name'   => 'required|string|max:255',
+            'category'       => 'required|string|max:255',
+            'year_level'     => 'required|integer|min:1|max:5',
+            // assignments: array of {department_id, course_id} pairs
+            'assignments'            => 'required|array|min:1',
+            'assignments.*.department_id' => 'required|exists:departments,id',
+            'assignments.*.course_id'     => 'required|exists:courses,id',
         ]);
 
-        Subject::create($request->only([
-            'department_id','course_id','category',
-            'subject_code','year_level','subject_name',
-        ]));
+        // Validate no duplicate dept+course pairs within the submission itself
+        $pairs = collect($data['assignments'])->map(fn($a) => $a['department_id'].'-'.$a['course_id']);
+        if ($pairs->count() !== $pairs->unique()->count()) {
+            return back()->withInput()
+                ->withErrors(['assignments' => 'Duplicate department + course combination in your selections.']);
+        }
+
+        $subject = Subject::create([
+            'subject_code' => $data['subject_code'],
+            'subject_name' => $data['subject_name'],
+            'category'     => $data['category'],
+            'year_level'   => $data['year_level'],
+        ]);
+
+        // Attach each dept+course assignment
+        foreach ($data['assignments'] as $assignment) {
+            $subject->courses()->attach($assignment['course_id'], [
+                'department_id' => $assignment['department_id'],
+            ]);
+        }
 
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject created.');
@@ -48,26 +69,43 @@ return view('admin.subjects.create', compact('departments', 'allCourses'));
     public function edit(Subject $subject)
     {
         $departments = Department::with('courses')->orderBy('department_name')->get();
-return view('admin.subjects.edit', compact('subject', 'departments'));
-        $categories  = SubjectCategory::orderBy('category_name')->get();
-        return view('admin.subjects.edit', compact('subject', 'departments', 'categories'));
+        $subject->load('courses'); // includes pivot department_id
+
+        return view('admin.subjects.edit', compact('subject', 'departments'));
     }
 
     public function update(Request $request, Subject $subject)
     {
-        $request->validate([
-            'department_id' => 'required|exists:departments,id',
-            'course_id'     => 'required|exists:courses,id',
-            'category'      => 'required|string|max:255',
-            'subject_code'  => 'required|string|max:50|unique:subjects',
-            'year_level'    => 'required|integer|min:1|max:5',
-            'subject_name'  => 'required|string|max:255',
+        $data = $request->validate([
+            'subject_code'   => ['required','string','max:50', Rule::unique('subjects','subject_code')->ignore($subject->id)],
+            'subject_name'   => 'required|string|max:255',
+            'category'       => 'required|string|max:255',
+            'year_level'     => 'required|integer|min:1|max:5',
+            'assignments'            => 'required|array|min:1',
+            'assignments.*.department_id' => 'required|exists:departments,id',
+            'assignments.*.course_id'     => 'required|exists:courses,id',
         ]);
 
-        Subject::create($request->only([
-            'department_id','course_id','category',
-            'subject_code','year_level','subject_name',
-        ]));
+        $pairs = collect($data['assignments'])->map(fn($a) => $a['department_id'].'-'.$a['course_id']);
+        if ($pairs->count() !== $pairs->unique()->count()) {
+            return back()->withInput()
+                ->withErrors(['assignments' => 'Duplicate department + course combination in your selections.']);
+        }
+
+        $subject->update([
+            'subject_code' => $data['subject_code'],
+            'subject_name' => $data['subject_name'],
+            'category'     => $data['category'],
+            'year_level'   => $data['year_level'],
+        ]);
+
+        // Rebuild pivot: detach all, then re-attach
+        $subject->courses()->detach();
+        foreach ($data['assignments'] as $assignment) {
+            $subject->courses()->attach($assignment['course_id'], [
+                'department_id' => $assignment['department_id'],
+            ]);
+        }
 
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject updated.');
@@ -75,7 +113,7 @@ return view('admin.subjects.edit', compact('subject', 'departments'));
 
     public function destroy(Subject $subject)
     {
-        $subject->delete();
+        $subject->delete(); // pivot rows cascade via DB constraint
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject deleted.');
     }
