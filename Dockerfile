@@ -38,7 +38,7 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 EXPOSE 8000
 CMD php artisan config:clear && \
     php artisan config:cache && \
-    php artisan migrate:fresh --seed --force && \
+    php artisan migrate --force && \
     php artisan serve --host=0.0.0.0 --port=8000
 
-#php artisan migrate:fresh --force && \ so you don't lose data on every deploy. 
+#php artisan migrate:fresh --seed --force && \ new database and seed data every time container starts, remove if not needed

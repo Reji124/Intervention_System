@@ -10,7 +10,7 @@ class DepartmentController extends Controller
     public function index()
     {
         $departments = Department::with('courses')
-            ->withCount('subjects')
+            ->withCount('subjects')  // now counts via subject_course through courses
             ->orderBy('department_name')
             ->get();
 
