@@ -17,6 +17,11 @@ class SchoolYear extends Model
     public function semesters()
     {
         return $this->hasMany(Semester::class)
-            ->orderByRaw("FIELD(semester_name, '1st Semester', '2nd Semester', 'Summer')");
+            ->orderByRaw("CASE semester_name
+                WHEN '1st Semester' THEN 1
+                WHEN '2nd Semester' THEN 2
+                WHEN 'Summer'       THEN 3
+                ELSE 4
+            END");
     }
 }
