@@ -55,7 +55,7 @@ class SchoolYearController extends Controller
         $schoolYear->load([
             'semesters.teacherSubjects.teacher',
             'semesters.teacherSubjects.subject',
-            'semesters.teacherSubjects.examResults',
+            'semesters.teacherSubjects.examResults',  // via hasManyThrough Exam
         ]);
         return view('admin.school-years.show', compact('schoolYear'));
     }
