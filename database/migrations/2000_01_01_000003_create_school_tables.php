@@ -52,7 +52,7 @@ return new class extends Migration {
             $table->string('subject_code');
             $table->string('subject_name');
             $table->string('year_level');
-            $table->string('category'); // General, Major, ReEd
+            $table->string('category'); // General, Major
             $table->timestamps();
         });
 

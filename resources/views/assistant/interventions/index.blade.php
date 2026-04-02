@@ -345,7 +345,7 @@ table.matrix-tbl { width: 100%; border-collapse: collapse; min-width: 560px; }
 <div class="report-bar">
     <div class="report-bar-inner">
         <div class="report-bar-left">
-            <h2>Intervention report</h2>
+            <h2>Teacher Records</h2>
             <p>Monitor uploaded masterlists and item analysis matrices per teacher and subject</p>
         </div>
         <button class="btn-print" onclick="window.print()">
