@@ -93,7 +93,7 @@
         <div class="nav-sec">Reports</div>
         <a href="{{ route('assistant.interventions.index') }}" class="nav-item {{ request()->routeIs('assistant.interventions*') ? 'active' : '' }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Failing Students
+            Reports
         </a>
     </nav>
     <div class="sb-footer">
