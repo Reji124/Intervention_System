@@ -71,7 +71,7 @@
             @foreach($subjects as $ts)
             <a href="{{ route('assistant.subjects.show', $ts) }}"
                class="subject-card"
-               data-course="{{ $ts->subject->course_id }}">
+               data-course="{{ $ts->subject->courses->first()?->id }}"
                 <div class="card-top">
                     <div class="subject-code">{{ $ts->subject->subject_code }}</div>
                     <div class="subject-name">{{ $ts->subject->subject_name }}</div>

@@ -52,8 +52,8 @@
         <h2>{{ $teacherSubject->subject->subject_code }} — {{ $teacherSubject->section }}</h2>
         <div class="sh-meta">
             <span>{{ $teacherSubject->subject->subject_name }}</span>
-            <span class="meta-course">{{ $teacherSubject->subject->course->course_name }}</span>
-            <span>{{ $teacherSubject->subject->department->department_name }}</span>
+            <span class="meta-course">{{ $teacherSubject->subject->course?->course_name ?? '—' }}</span>
+            <span>{{ $teacherSubject->subject->department?->department_name ?? '—' }}</span>
             <span>Year {{ $teacherSubject->subject->year_level }}</span>
             <span>{{ $teacherSubject->semester->semester_name }} Sem, S.Y. {{ $teacherSubject->semester->schoolYear->year_start }}–{{ $teacherSubject->semester->schoolYear->year_end }}</span>
         </div>

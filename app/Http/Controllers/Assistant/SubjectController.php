@@ -13,17 +13,14 @@ class SubjectController extends Controller
     public function index()
     {
         $teacherSubjects = TeacherSubject::with([
-                'subject.department',
-                'subject.course',
+                'subject.courses.department', // pivot-based now
                 'teacher',
                 'semester.schoolYear',
-                'exams',                   // no examResults here — we'll aggregate below
+                'exams',
             ])
             ->latest()
             ->get();
 
-        // For each TeacherSubject, count distinct students via live exam results
-        // (respects deleted exams — only counts what currently exists)
         $tsIds = $teacherSubjects->pluck('id');
 
         $studentCounts = \App\Models\ExamResult::query()
@@ -45,15 +42,15 @@ class SubjectController extends Controller
             'teachers',
             'courses',
             'activeSemester',
-            'studentCounts',   // keyed by teacher_subject_id
+            'studentCounts',
         ));
     }
 
     public function show(TeacherSubject $teacherSubject)
     {
         $teacherSubject->load([
-            'subject.department',
-            'subject.course',
+            'subject.courses.department', // pivot-based now
+            'subject.departments',        // pivot-based now
             'teacher',
             'semester.schoolYear',
             'exams.examResults.student',
