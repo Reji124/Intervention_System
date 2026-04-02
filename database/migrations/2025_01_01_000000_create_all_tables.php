@@ -10,7 +10,7 @@ return new class extends Migration {
     public function up(): void {
 
         // Drop everything cleanly
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('SET session_replication_role = replica;');
         Schema::dropIfExists('exam_results');
         Schema::dropIfExists('teacher_notes');
         Schema::dropIfExists('students');
@@ -31,7 +31,7 @@ return new class extends Migration {
         Schema::dropIfExists('failed_jobs');
         Schema::dropIfExists('job_batches');
         Schema::dropIfExists('jobs');
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::statement('SET session_replication_role = DEFAULT;');
 
         // --- Laravel internals ---
 
@@ -214,7 +214,7 @@ return new class extends Migration {
     }
 
     public function down(): void {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('SET session_replication_role = replica;'); 
         Schema::dropIfExists('exam_results');
         Schema::dropIfExists('teacher_notes');
         Schema::dropIfExists('students');
@@ -235,6 +235,6 @@ return new class extends Migration {
         Schema::dropIfExists('failed_jobs');
         Schema::dropIfExists('job_batches');
         Schema::dropIfExists('jobs');
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        DB::statement('SET session_replication_role = DEFAULT;');
     }
 };
