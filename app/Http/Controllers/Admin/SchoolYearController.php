@@ -52,7 +52,11 @@ class SchoolYearController extends Controller
 
     public function show(SchoolYear $schoolYear)
     {
-        $schoolYear->load('semesters');
+        $schoolYear->load([
+            'semesters.teacherSubjects.teacher',
+            'semesters.teacherSubjects.subject',
+            'semesters.teacherSubjects.examResults',
+        ]);
         return view('admin.school-years.show', compact('schoolYear'));
     }
 
