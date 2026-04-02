@@ -10,7 +10,6 @@
         margin-bottom: 20px;
     }
 
-    /* Department card */
     .dept-section {
         margin-bottom: 20px;
     }
@@ -48,22 +47,6 @@
         padding: 2px 10px;
     }
 
-    /* Year level group label */
-    .year-group-label {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 20px;
-        background: #f3f4f6;
-        border-bottom: 1px solid var(--border, #e5e7eb);
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: #9ca3af;
-    }
-
-    /* Table inside card */
     .dept-card table {
         width: 100%;
         border-collapse: collapse;
@@ -111,7 +94,6 @@
         margin-top: 2px;
     }
 
-    /* Category badge */
     .badge-category {
         display: inline-block;
         padding: 2px 9px;
@@ -123,7 +105,6 @@
         border: 1px solid #bfdbfe;
     }
 
-    /* Action buttons */
     .action-group {
         display: flex;
         gap: 8px;
@@ -203,15 +184,11 @@
     <a href="{{ route('admin.subjects.create') }}" class="btn btn-primary">+ New Subject</a>
 </div>
 
-@php
-    $grouped = $subjects->groupBy(function($s) { return $s->department->department_name; })->sortKeys();
-@endphp
-
-{{-- Replace the @php grouped block and @forelse with this --}}
-
 @forelse($subjects as $subject)
 <div class="dept-section">
     <div class="dept-card">
+
+        {{-- Subject header --}}
         <div class="dept-card-header">
             <span class="dept-card-title">{{ $subject->subject_name }}</span>
             <span class="dept-card-count" style="background:#eff6ff;color:#3b82f6;border:1px solid #bfdbfe">
@@ -220,58 +197,60 @@
             <span class="dept-card-count">
                 Year {{ $subject->year_level }}
             </span>
-            <span class="badge-category" style="margin-left:4px">{{ $subject->category }}</span>
+            <span class="badge-category" style="margin-left:4px">
+                {{ $subject->category }}
+            </span>
+            <div class="action-group" style="margin-left: auto;">
+                <a href="{{ route('admin.subjects.edit', $subject) }}" class="btn-action btn-action-edit">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit
+                </a>
+                <form class="delete-form" method="POST"
+                      action="{{ route('admin.subjects.destroy', $subject) }}"
+                      onsubmit="return confirm('Delete {{ $subject->subject_name }}?')">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="btn-action btn-action-delete">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                        Delete
+                    </button>
+                </form>
+            </div>
         </div>
 
+        {{-- Course + Department assignments --}}
+        @if($subject->courses->isNotEmpty())
         <table>
             <thead>
                 <tr>
                     <th>Department</th>
                     <th>Course</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody>
-            @foreach($subject->courses as $course)
-            <tr>
-                <td>{{ $course->department->department_name ?? '—' }}</td>
-                <td>{{ $course->course_name }}</td>
-                <td>
-                    @if($loop->first)
-                    {{-- Edit/Delete only shown once per subject --}}
-                    <div class="action-group">
-                        <a href="{{ route('admin.subjects.edit', $subject) }}" class="btn-action btn-action-edit">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                            Edit
-                        </a>
-                        <form class="delete-form" method="POST"
-                              action="{{ route('admin.subjects.destroy', $subject) }}"
-                              onsubmit="return confirm('Delete {{ $subject->subject_name }}?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn-action btn-action-delete">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                    <path d="M10 11v6"/><path d="M14 11v6"/>
-                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                                </svg>
-                                Delete
-                            </button>
-                        </form>
-                    </div>
-                    @endif
-                </td>
-            </tr>
-            @endforeach
+                @foreach($subject->courses as $course)
+                <tr>
+                    <td>{{ $course->department->department_name ?? '—' }}</td>
+                    <td>{{ $course->course_name }}</td>
+                </tr>
+                @endforeach
             </tbody>
         </table>
+        @else
+            <div class="empty-cell">No courses assigned to this subject.</div>
+        @endif
+
     </div>
 </div>
 @empty
-<div class="empty-state">No subjects yet.</div>
+<div class="empty-state">No subjects yet. <a href="{{ route('admin.subjects.create') }}">Create one.</a></div>
 @endforelse
 
 @endsection

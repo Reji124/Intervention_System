@@ -13,7 +13,6 @@ class SubjectController extends Controller
 {
     public function index()
     {
-        // Load each subject with its course+department pivot rows
         $subjects = Subject::with(['courses.department'])
                         ->orderBy('subject_name')
                         ->get();
