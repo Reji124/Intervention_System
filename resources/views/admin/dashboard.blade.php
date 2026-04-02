@@ -32,12 +32,29 @@
     .full-width { margin-bottom:20px; }
     .card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; overflow:hidden; animation:slideUp .4s ease .2s both; }
     .card-header { padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .card-header-left { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .card-header-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .card-title { font-family:'DM Serif Display',serif; font-size:16px; color:var(--text-dark); }
     .card-action { font-size:12px; color:var(--teal-light); text-decoration:none; font-weight:500; white-space:nowrap; }
 
-    /* ── Semester filter ────────────────────────────────────────────────────── */
-    .sem-select { font-size:12px; font-weight:500; color:var(--text-mid); border:1px solid var(--border); border-radius:7px; padding:5px 10px; background:var(--card-bg); cursor:pointer; outline:none; }
+    /* ── SY / Semester filter row ───────────────────────────────────────────── */
+    .filter-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .filter-sep { font-size:12px; color:var(--text-soft); }
+    .sem-select {
+        font-size:12px; font-weight:500; color:var(--text-mid);
+        border:1px solid var(--border); border-radius:7px; padding:5px 10px;
+        background:var(--card-bg); cursor:pointer; outline:none;
+        max-width:200px;
+    }
+    .sem-select:disabled { opacity:.45; cursor:not-allowed; }
+
+    /* active filter pill shown in the header */
+    .filter-pill {
+        display:inline-flex; align-items:center; gap:5px;
+        font-size:11px; font-weight:600; padding:3px 9px;
+        border-radius:20px; background:var(--amber-bg); color:var(--amber);
+    }
+    .filter-pill a { color:inherit; text-decoration:none; font-size:10px; opacity:.7; }
+    .filter-pill a:hover { opacity:1; }
 
     /* ── Teacher performance table ──────────────────────────────────────────── */
     table { width:100%; border-collapse:collapse; }
@@ -93,14 +110,6 @@
 
     /* ── Empty state ────────────────────────────────────────────────────────── */
     .empty-row td { text-align:center; color:var(--text-soft); padding:32px !important; font-size:13px; }
-
-    .badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; }
-    .badge-pass      { background:var(--green-bg); color:var(--green); }
-    .badge-fail      { background:var(--red-bg);   color:var(--red); }
-    .badge-prelim    { background:var(--amber-bg); color:var(--amber); }
-    .badge-mid,.badge-midterm { background:var(--blue-bg); color:var(--blue); }
-    .badge-pre-final { background:#fef0f8; color:#b0479a; }
-    .badge-final     { background:#f0ebfa; color:#534ab7; }
 </style>
 @endpush
 
@@ -170,7 +179,6 @@
         @php
             $data      = $examBreakdown[$type] ?? ['pass_rate' => 0, 'pass' => 0, 'fail' => 0, 'total' => 0];
             $rate      = $data['pass_rate'];
-            $fillClass = $rate >= 75 ? 'good' : ($rate >= 60 ? 'warn' : 'risk');
             $fillColor = $rate >= 75 ? 'var(--green)' : ($rate >= 60 ? 'var(--amber)' : 'var(--red)');
         @endphp
         <div class="breakdown-item">
@@ -197,17 +205,50 @@
         <div class="card-header">
             <div class="card-header-left">
                 <span class="card-title">Teacher Performance</span>
-                <select class="sem-select" onchange="filterBySemester(this.value)">
-                    <option value="all">All Semesters</option>
-                    @foreach($semesters as $sem)
-                        <option value="{{ $sem->id }}" {{ request('semester_id') == $sem->id ? 'selected' : '' }}>
-                            {{ $sem->semester_name }} — {{ $sem->schoolYear->year_label ?? '' }}
-                        </option>
-                    @endforeach
-                </select>
+
+                {{-- School Year picker --}}
+                <div class="filter-row">
+                    <select class="sem-select" id="sy-select" onchange="onSyChange(this.value)">
+                        <option value="">All School Years</option>
+                        @foreach($schoolYears as $sy)
+                            <option value="{{ $sy->id }}"
+                                {{ request('school_year_id') == $sy->id ? 'selected' : '' }}>
+                                {{ $sy->year_label }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <span class="filter-sep">—</span>
+
+                    {{-- Semester picker (filtered by chosen SY via JS) --}}
+                    <select class="sem-select" id="sem-select" onchange="applyFilters()"
+                        {{ !request('school_year_id') ? 'disabled' : '' }}>
+                        <option value="">All Semesters</option>
+                        @foreach($semesters as $sem)
+                            <option
+                                value="{{ $sem->id }}"
+                                data-sy="{{ $sem->school_year_id }}"
+                                {{ request('semester_id') == $sem->id ? 'selected' : '' }}
+                                {{-- hidden if it doesn't belong to the currently selected SY --}}
+                                style="{{ request('school_year_id') && $sem->school_year_id != request('school_year_id') ? 'display:none' : '' }}">
+                                {{ $sem->semester_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Active filter pill (shown when any filter is active) --}}
+                @if(request('school_year_id') || request('semester_id'))
+                    <span class="filter-pill">
+                        Filtered
+                        <a href="{{ route('admin.dashboard') }}" title="Clear filters">✕</a>
+                    </span>
+                @endif
             </div>
+
             <a href="{{ route('admin.interventions.index') }}" class="card-action">Full report →</a>
         </div>
+
         <table>
             <thead>
                 <tr>
@@ -223,7 +264,8 @@
                 @php
                     $rate      = $t->pass_rate ?? 0;
                     $fillClass = $rate >= 75 ? 'good' : ($rate >= 60 ? 'warn' : 'risk');
-                    $isAtRisk  = $rate < 60;
+                    $isAtRisk  = $t->exams_count > 0 && $rate < 60;
+                    $noData    = $t->exams_count == 0;
                 @endphp
                 <tr>
                     <td>
@@ -233,15 +275,21 @@
                     <td>{{ $t->subjects_count ?? 0 }}</td>
                     <td>{{ $t->total_students ?? 0 }}</td>
                     <td>
+                        @if($noData)
+                            <span style="font-size:12px;color:var(--text-soft)">No data</span>
+                        @else
                         <div class="rate-wrap">
                             <div class="rate-bar">
                                 <div class="rate-fill {{ $fillClass }}" style="width:{{ $rate }}%"></div>
                             </div>
                             <span class="rate-label {{ $fillClass }}">{{ $rate }}%</span>
                         </div>
+                        @endif
                     </td>
                     <td>
-                        @if($isAtRisk)
+                        @if($noData)
+                            <span style="font-size:11px;color:var(--text-soft)">—</span>
+                        @elseif($isAtRisk)
                             <span class="risk-badge">At Risk</span>
                         @else
                             <span class="ok-badge">On Track</span>
@@ -250,7 +298,7 @@
                 </tr>
                 @empty
                 <tr class="empty-row">
-                    <td colspan="5">No teacher data available for this semester.</td>
+                    <td colspan="5">No teacher data available.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -326,13 +374,52 @@
 
 @push('scripts')
 <script>
-    function filterBySemester(semId) {
-        const url = new URL(window.location.href);
-        if (semId === 'all') {
-            url.searchParams.delete('semester_id');
+    // All semester options with their SY mapping (built from Blade data)
+    const semestersBySy = @json(
+        $semesters->groupBy('school_year_id')->map(fn($group) =>
+            $group->map(fn($s) => ['id' => $s->id, 'name' => $s->semester_name])
+        )
+    );
+
+    const sySelect  = document.getElementById('sy-select');
+    const semSelect = document.getElementById('sem-select');
+
+    function onSyChange(syId) {
+        // Rebuild semester options for this SY
+        semSelect.innerHTML = '<option value="">All Semesters</option>';
+
+        if (syId && semestersBySy[syId]) {
+            semestersBySy[syId].forEach(sem => {
+                const opt = document.createElement('option');
+                opt.value       = sem.id;
+                opt.textContent = sem.name;
+                semSelect.appendChild(opt);
+            });
+            semSelect.disabled = false;
         } else {
-            url.searchParams.set('semester_id', semId);
+            semSelect.disabled = true;
         }
+
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const url    = new URL(window.location.href);
+        const syVal  = sySelect.value;
+        const semVal = semSelect.value;
+
+        if (syVal) {
+            url.searchParams.set('school_year_id', syVal);
+        } else {
+            url.searchParams.delete('school_year_id');
+        }
+
+        if (semVal) {
+            url.searchParams.set('semester_id', semVal);
+        } else {
+            url.searchParams.delete('semester_id');
+        }
+
         window.location.href = url.toString();
     }
 </script>
