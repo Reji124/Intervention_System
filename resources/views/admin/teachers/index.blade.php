@@ -71,6 +71,10 @@
     .delete-form { display: inline; margin: 0; padding: 0; }
 </style>
 
+@if(session('success'))
+    <div class="alert alert-success" style="margin-bottom:16px">{{ session('success') }}</div>
+@endif
+
 <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
     <a href="{{ route('admin.teachers.create') }}" class="btn btn-primary">+ New teacher</a>
 </div>

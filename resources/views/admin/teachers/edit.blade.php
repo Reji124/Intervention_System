@@ -2,15 +2,15 @@
 @section('title','Edit Teacher')
 @section('page-title','Edit Teacher')
 @section('content')
- 
+
 <div class="form-card">
     <form method="POST" action="{{ route('admin.teachers.update', $teacher) }}">
     @csrf @method('PUT')
- 
+
     <div style="font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">
         Teacher information
     </div>
- 
+
     <div class="field-row">
         <div class="field">
             <label>Full name <span class="req">*</span></label>
@@ -26,19 +26,20 @@
             @error('teacher_code')<p class="field-error">{{ $message }}</p>@enderror
         </div>
     </div>
- 
+
     <div class="field">
-        <label>Email address</label>
+        <label>Email address <span style="color:var(--text-soft);font-weight:400">(optional)</span></label>
         <input type="email" name="email"
                value="{{ old('email', $teacher->email) }}"
                placeholder="e.g. juan@school.com">
         @error('email')<p class="field-error">{{ $message }}</p>@enderror
     </div>
- 
+
     <div class="form-actions">
         <a href="{{ route('admin.teachers.show', $teacher) }}" class="btn btn-secondary">Cancel</a>
         <button type="submit" class="btn btn-primary">Update teacher</button>
     </div>
     </form>
 </div>
+
 @endsection

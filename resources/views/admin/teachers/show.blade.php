@@ -2,7 +2,7 @@
 @section('title','Manage Teacher')
 @section('page-title','Manage Teacher')
 @section('content')
- 
+
 <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
     <div>
         <h2 style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--text-dark)">
@@ -24,7 +24,15 @@
     </div>
     <a href="{{ route('admin.teachers.index') }}" class="btn btn-secondary">← Back</a>
 </div>
- 
+
+{{-- Flash messages --}}
+@if(session('success'))
+    <div class="alert alert-success" style="margin-bottom:16px">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger" style="margin-bottom:16px">{{ session('error') }}</div>
+@endif
+
 {{-- Assign subject form --}}
 <div class="form-card" style="margin-bottom:20px">
     <div style="font-size:13px;font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">
@@ -38,10 +46,11 @@
             <select name="subject_id" required>
                 <option value="">— Select subject —</option>
                 @foreach($subjects as $subject)
-                <option value="{{ $subject->id }}">
-                    {{ $subject->subject_code }} — {{ $subject->subject_name }}
-                    ({{ $subject->department->department_name }})
-                </option>
+                    @php $dept = $subject->departments->first(); @endphp
+                    <option value="{{ $subject->id }}">
+                        {{ $subject->subject_code }} — {{ $subject->subject_name }}
+                        {{ $dept ? '(' . $dept->department_name . ')' : '' }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -67,7 +76,7 @@
     </div>
     </form>
 </div>
- 
+
 {{-- Subjects list --}}
 <div class="card">
     <div style="padding:16px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -91,26 +100,27 @@
         </thead>
         <tbody>
         @forelse($teacher->teacherSubjects as $ts)
-        <tr>
-            <td><span class="badge badge-mid">{{ $ts->subject->subject_code }}</span></td>
-            <td><span class="td-main">{{ $ts->subject->subject_name }}</span></td>
-            <td>{{ $ts->section }}</td>
-            <td>
-                {{ $ts->semester->semester_name }} Sem,
-                S.Y. {{ $ts->semester->schoolYear->year_start }}–{{ $ts->semester->schoolYear->year_end }}
-            </td>
-            <td style="font-size:12px;color:var(--text-soft)">
-                {{ $ts->subject->department->department_name }}
-            </td>
-            <td>
-                <form method="POST"
-                      action="{{ route('admin.teachers.remove-subject', $ts) }}"
-                      onsubmit="return confirm('Remove {{ $ts->subject->subject_code }} from {{ $teacher->teacher_name }}?')">
-                    @csrf @method('DELETE')
-                    <button class="btn-link-danger">Remove</button>
-                </form>
-            </td>
-        </tr>
+            @php $dept = $ts->subject->departments->first(); @endphp
+            <tr>
+                <td><span class="badge badge-mid">{{ $ts->subject->subject_code }}</span></td>
+                <td><span class="td-main">{{ $ts->subject->subject_name }}</span></td>
+                <td>{{ $ts->section }}</td>
+                <td>
+                    {{ $ts->semester->semester_name }} Sem,
+                    S.Y. {{ $ts->semester->schoolYear->year_start }}–{{ $ts->semester->schoolYear->year_end }}
+                </td>
+                <td style="font-size:12px;color:var(--text-soft)">
+                    {{ $dept ? $dept->department_name : '—' }}
+                </td>
+                <td>
+                    <form method="POST"
+                          action="{{ route('admin.teachers.remove-subject', $ts) }}"
+                          onsubmit="return confirm('Remove {{ $ts->subject->subject_code }} from {{ $teacher->teacher_name }}?')">
+                        @csrf @method('DELETE')
+                        <button class="btn-link-danger">Remove</button>
+                    </form>
+                </td>
+            </tr>
         @empty
         <tr>
             <td colspan="6" class="empty-cell">

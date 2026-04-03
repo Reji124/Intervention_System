@@ -16,7 +16,10 @@ class TeacherController extends Controller
     public function index()
     {
         $teachers = Teacher::withCount('teacherSubjects')
-            ->with(['teacherSubjects.subject', 'teacherSubjects.semester.schoolYear'])
+            ->with([
+                'teacherSubjects.subject.departments',
+                'teacherSubjects.semester.schoolYear',
+            ])
             ->latest()
             ->get();
 
@@ -25,7 +28,7 @@ class TeacherController extends Controller
 
     public function create()
     {
-        $subjects  = Subject::with('department')->orderBy('subject_code')->get();
+        $subjects  = Subject::with('departments')->orderBy('subject_code')->get();
         $semesters = Semester::with('schoolYear')->latest()->get();
         return view('admin.teachers.create', compact('subjects', 'semesters'));
     }
@@ -72,11 +75,11 @@ class TeacherController extends Controller
     public function show(Teacher $teacher)
     {
         $teacher->load([
-            'teacherSubjects.subject.department',
+            'teacherSubjects.subject.departments',
             'teacherSubjects.semester.schoolYear',
         ]);
 
-        $subjects  = Subject::with('department')->orderBy('subject_code')->get();
+        $subjects  = Subject::with('departments')->orderBy('subject_code')->get();
         $semesters = Semester::with('schoolYear')->latest()->get();
 
         return view('admin.teachers.show', compact('teacher', 'subjects', 'semesters'));
@@ -84,10 +87,12 @@ class TeacherController extends Controller
 
     public function edit(Teacher $teacher)
     {
-        $teacher->load(['teacherSubjects.subject', 'teacherSubjects.semester.schoolYear']);
-        $subjects  = Subject::with('department')->orderBy('subject_code')->get();
-        $semesters = Semester::with('schoolYear')->latest()->get();
-        return view('admin.teachers.edit', compact('teacher', 'subjects', 'semesters'));
+        $teacher->load([
+            'teacherSubjects.subject.departments',
+            'teacherSubjects.semester.schoolYear',
+        ]);
+
+        return view('admin.teachers.edit', compact('teacher'));
     }
 
     public function update(Request $request, Teacher $teacher)
@@ -104,7 +109,7 @@ class TeacherController extends Controller
             'email'        => $request->email,
         ]);
 
-        return redirect()->route('admin.teachers.index')
+        return redirect()->route('admin.teachers.show', $teacher)
             ->with('success', 'Teacher updated successfully.');
     }
 

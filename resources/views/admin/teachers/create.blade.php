@@ -2,14 +2,14 @@
 @section('title','New Teacher')
 @section('page-title','New Teacher')
 @section('content')
- 
+
 <div class="form-card" style="max-width:820px">
     <form method="POST" action="{{ route('admin.teachers.store') }}">
     @csrf
- 
+
     {{-- Teacher info --}}
     <div class="section-label">Teacher information</div>
- 
+
     <div class="field-row">
         <div class="field">
             <label>Full name <span class="req">*</span></label>
@@ -29,7 +29,7 @@
             @error('teacher_code')<p class="field-error">{{ $message }}</p>@enderror
         </div>
     </div>
- 
+
     <div class="field">
         <label>Email address <span style="color:var(--text-soft);font-weight:400">(optional)</span></label>
         <input type="email" name="email"
@@ -37,45 +37,57 @@
                placeholder="e.g. juan@school.com">
         @error('email')<p class="field-error">{{ $message }}</p>@enderror
     </div>
- 
+
     {{-- Subject assignments --}}
     <div class="section-label" style="margin-top:8px">
         Subject assignments
         <span style="font-weight:400;color:var(--text-soft)">— optional, can be done later</span>
     </div>
- 
+
     <div id="subject-rows">
         @include('admin.teachers._subject_row', ['index' => 0, 'subjects' => $subjects, 'semesters' => $semesters])
     </div>
- 
+
     <button type="button" onclick="addRow()"
             class="btn btn-secondary"
             style="font-size:12px;padding:7px 14px;margin-bottom:20px">
         + Add another subject
     </button>
- 
+
     <div class="form-actions">
         <a href="{{ route('admin.teachers.index') }}" class="btn btn-secondary">Cancel</a>
         <button type="submit" class="btn btn-primary">Create teacher</button>
     </div>
     </form>
 </div>
- 
+
 <style>
 .section-label { font-size:13px; font-weight:600; color:var(--text-dark); margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
 .subject-row-grid { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; margin-bottom:10px; align-items:end; }
 </style>
- 
+
 <script>
 let rowIndex = 1;
-const subjects  = @json($subjects->map(fn($s) => ['id' => $s->id, 'label' => $s->subject_code . ' — ' . $s->subject_name . ' (' . $s->department->department_name . ')']));
-const semesters = @json($semesters->map(fn($s) => ['id' => $s->id, 'label' => $s->semester_name . ' Sem — S.Y. ' . $s->schoolYear->year_start . '–' . $s->schoolYear->year_end]));
- 
+
+{{-- Build the subject list using the departments() relationship (plural) --}}
+const subjects = @json($subjects->map(function($s) {
+    $dept = $s->departments->first();
+    return [
+        'id'    => $s->id,
+        'label' => $s->subject_code . ' — ' . $s->subject_name . ($dept ? ' (' . $dept->department_name . ')' : ''),
+    ];
+}));
+
+const semesters = @json($semesters->map(fn($s) => [
+    'id'    => $s->id,
+    'label' => $s->semester_name . ' Sem — S.Y. ' . $s->schoolYear->year_start . '–' . $s->schoolYear->year_end,
+]));
+
 function opts(items) {
     return '<option value="">— Select —</option>' +
         items.map(i => `<option value="${i.id}">${i.label}</option>`).join('');
 }
- 
+
 function addRow() {
     const wrap = document.getElementById('subject-rows');
     const div  = document.createElement('div');
