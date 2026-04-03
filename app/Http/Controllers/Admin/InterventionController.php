@@ -126,7 +126,6 @@ class InterventionController extends Controller
                 $teacherNotes = collect();
             }
 
-            // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
                 ->filter(fn($ts) => $ts->teacher && $ts->subject)
                 ->groupBy(fn($ts) => $ts->teacher->teacher_name)
@@ -134,21 +133,18 @@ class InterventionController extends Controller
                     $teacher     = $teacherTSList->first()->teacher;
                     $teacherNote = $teacherNotes->get($teacher->id);
 
-                    // teacher → subject label → exam_type → data
                     return $teacherTSList->groupBy(function ($ts) {
                         return $ts->subject->subject_code
                             . ' — ' . $ts->subject->subject_name
                             . ($ts->section ? ' (' . $ts->section . ')' : '');
                     })->map(function ($subjectTSList) use ($teacherNote) {
-                        // subject-level stats (across all exam types)
                         $allSubjectResults = $subjectTSList->flatMap(
                             fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
                         );
 
-                        // group by exam_type within this subject
                         $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
                             ->groupBy('exam_type')
-                            ->map(function ($examsOfType) use ($teacherNote) {
+                            ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {  // ← added $subjectTSList
                                 $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
                                 $failingResults = $allResults->where('remark', 'fail')
                                                             ->sortBy('percentage')
@@ -158,7 +154,7 @@ class InterventionController extends Controller
 
                                 return [
                                     'teacher_note'    => $teacherNote,
-                                    'teacher_subject' => $anyExam?->teacherSubject ?? null,
+                                    'teacher_subject' => $subjectTSList->first(),  // ← FIXED
                                     'all_results'     => $allResults,
                                     'failing_results' => $failingResults,
                                     'pass_count'      => $allResults->where('remark', 'pass')->count(),
