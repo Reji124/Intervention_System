@@ -126,57 +126,60 @@ class InterventionController extends Controller
                 $teacherNotes = collect();
             }
 
-            $grouped = $teacherSubjects
-                ->filter(fn($ts) => $ts->teacher && $ts->subject)
-                ->groupBy(fn($ts) => $ts->teacher->teacher_name)
-                ->map(function ($teacherTSList) use ($teacherNotes) {
-                    $teacher     = $teacherTSList->first()->teacher;
-                    $teacherNote = $teacherNotes->get($teacher->id);
+            // ── Build grouped structure (mirrors assistant controller) ─────────
+                        $grouped = $teacherSubjects
+                            ->filter(fn($ts) => $ts->teacher && $ts->subject)
+                            ->groupBy(fn($ts) => $ts->teacher->teacher_name)
+                            ->map(function ($teacherTSList) use ($teacherNotes) {
+                                $teacher     = $teacherTSList->first()->teacher;
+                                $teacherNote = $teacherNotes->get($teacher->id);
 
-                    return $teacherTSList->groupBy(function ($ts) {
-                        return $ts->subject->subject_code
-                            . ' — ' . $ts->subject->subject_name
-                            . ($ts->section ? ' (' . $ts->section . ')' : '');
-                    })->map(function ($subjectTSList) use ($teacherNote) {
-                        $allSubjectResults = $subjectTSList->flatMap(
-                            fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
-                        );
+                                return $teacherTSList->groupBy(function ($ts) {
+                                    return $ts->subject->subject_code
+                                        . ' — ' . $ts->subject->subject_name
+                                        . ($ts->section ? ' (' . $ts->section . ')' : '');
+                                })->map(function ($subjectTSList) use ($teacherNote) {
 
-                        $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
-                            ->groupBy('exam_type')
-                            ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {  // ← added $subjectTSList
-                                $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
-                                $failingResults = $allResults->where('remark', 'fail')
-                                                            ->sortBy('percentage')
-                                                            ->values();
-                                $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
-                                $anyExam        = $examsOfType->first();
+                                    $allSubjectResults = $subjectTSList->flatMap(
+                                        fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
+                                    );
 
-                                return [
-                                    'teacher_note'    => $teacherNote,
-                                    'teacher_subject' => $subjectTSList->first(),  // ← FIXED
-                                    'all_results'     => $allResults,
-                                    'failing_results' => $failingResults,
-                                    'pass_count'      => $allResults->where('remark', 'pass')->count(),
-                                    'fail_count'      => $failingResults->count(),
-                                    'total_count'     => $allResults->count(),
-                                    'exam'            => $examWithMatrix ?? $anyExam,
-                                ];
+                                    // ── exactly like assistant: flatMap exams then group by exam_type
+                                    $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
+                                        ->groupBy('exam_type')
+                                        ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {
+                                            $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
+                                            $failingResults = $allResults->where('remark', 'fail')
+                                                                        ->sortBy('percentage')
+                                                                        ->values();
+                                            $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
+                                            $anyExam        = $examsOfType->first();
+
+                                            return [
+                                                'teacher_note'    => $teacherNote,
+                                                'teacher_subject' => $subjectTSList->first(),
+                                                'all_results'     => $allResults,
+                                                'failing_results' => $failingResults,
+                                                'pass_count'      => $allResults->where('remark', 'pass')->count(),
+                                                'fail_count'      => $failingResults->count(),
+                                                'total_count'     => $allResults->count(),
+                                                'exam'            => $examWithMatrix ?? $anyExam,
+                                            ];
+                                        });
+
+                                    return [
+                                        'exam_types'      => $examTypes,
+                                        'pass_count'      => $allSubjectResults->where('remark', 'pass')->count(),
+                                        'fail_count'      => $allSubjectResults->where('remark', 'fail')->count(),
+                                        'total_count'     => $allSubjectResults->count(),
+                                        'pass_rate'       => $allSubjectResults->count() > 0
+                                            ? round(($allSubjectResults->where('remark', 'pass')->count() / $allSubjectResults->count()) * 100)
+                                            : 0,
+                                        'teacher_note'    => $teacherNote,
+                                        'teacher_subject' => $subjectTSList->first(),
+                                    ];
+                                });
                             });
-
-                        return [
-                            'exam_types'  => $examTypes,
-                            'pass_count'  => $allSubjectResults->where('remark', 'pass')->count(),
-                            'fail_count'  => $allSubjectResults->where('remark', 'fail')->count(),
-                            'total_count' => $allSubjectResults->count(),
-                            'pass_rate'   => $allSubjectResults->count() > 0
-                                ? round(($allSubjectResults->where('remark', 'pass')->count() / $allSubjectResults->count()) * 100)
-                                : 0,
-                            'teacher_note' => $teacherNote,
-                            'teacher_subject' => $subjectTSList->first(),
-                        ];
-                    });
-                });
 
             $examIds      = $teacherSubjects->flatMap(fn($ts) => $ts->exams->pluck('id'));
             $totalFailing = $examIds->isNotEmpty()
@@ -187,14 +190,8 @@ class InterventionController extends Controller
                 : 0;
 
         } catch (\Exception $e) {
-            Log::error('Admin\InterventionController@index: ' . $e->getMessage(), [
-                'filters' => $request->only([
-                    'school_year_id', 'semester_id', 'department_id',
-                    'category', 'subject_id', 'teacher_id',
-                ]),
-                'trace' => $e->getTraceAsString(),
-            ]);
-        }
+    dd($e->getMessage(), $e->getTraceAsString());
+}
 
         return view('admin.interventions.index', compact(
             'schoolYears', 'semesters', 'departments', 'categories',
