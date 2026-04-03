@@ -48,7 +48,7 @@ class InterventionController extends Controller
             $schoolYears = SchoolYear::with('semesters')->orderByDesc('year_start')->get();
             $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
             $departments = Department::orderBy('department_name')->get();
-            $subjects    = Subject::with('department')->orderBy('subject_code')->get();
+            $subjects = Subject::orderBy('subject_code')->get();
             $teachers    = Teacher::with([
                                 'teacherSubjects.subject',
                                 'teacherSubjects.semester',
@@ -77,13 +77,13 @@ class InterventionController extends Controller
 
             // ── Main query ────────────────────────────────────────────────────
             $tsQuery = TeacherSubject::with([
-                    'teacher',
-                    'subject.department',
-                    'semester.schoolYear',
-                    'exams.examResults.student',
-                    'exams.examResults.exam',
-                    'exams.uploadedBy',   // ← eager-load the uploader
-                ])
+                'teacher',
+                'subject',             // ← fixed
+                'semester.schoolYear',
+                'exams.examResults.student',
+                'exams.examResults.exam',
+                'exams.uploadedBy',
+            ])
                 ->whereHas('teacher')
                 ->whereHas('subject');
 
@@ -190,8 +190,14 @@ class InterventionController extends Controller
                 : 0;
 
         } catch (\Exception $e) {
-    dd($e->getMessage(), $e->getTraceAsString());
-}
+            Log::error('Admin\InterventionController@index: ' . $e->getMessage(), [
+                'filters' => $request->only([
+                    'school_year_id', 'semester_id', 'department_id',
+                    'category', 'subject_id', 'teacher_id',
+                ]),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
 
         return view('admin.interventions.index', compact(
             'schoolYears', 'semesters', 'departments', 'categories',
