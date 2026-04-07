@@ -101,7 +101,7 @@
             <td><span class="td-main">{{ $teacher->teacher_name }}</span></td>
             <td style="font-size:12px;color:var(--text-soft)">{{ $teacher->email ?? '—' }}</td>
             <td>
-                @forelse($teacher->teacherSubjects->take(3) as $ts)
+                @forelse($teacher->teacherSubjects->unique('subject_id')->take(3) as $ts)
                     <span class="badge badge-mid" style="margin-right:3px">
                         {{ $ts->subject->subject_code }}
                     </span>
@@ -136,7 +136,7 @@
 
                     {{-- Delete --}}
                     <form class="delete-form" method="POST" action="{{ route('admin.teachers.destroy', $teacher) }}"
-                          onsubmit="return confirm('Delete {{ $teacher->teacher_name }}?')">
+                          onsubmit="return confirm('Delete {{ addslashes($teacher->teacher_name) }}?')"
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn-action btn-action-delete">

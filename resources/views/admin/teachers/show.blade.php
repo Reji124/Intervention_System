@@ -25,13 +25,6 @@
     <a href="{{ route('admin.teachers.index') }}" class="btn btn-secondary">← Back</a>
 </div>
 
-{{-- Flash messages --}}
-@if(session('success'))
-    <div class="alert alert-success" style="margin-bottom:16px">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-    <div class="alert alert-danger" style="margin-bottom:16px">{{ session('error') }}</div>
-@endif
 
 {{-- Assign subject form --}}
 <div class="form-card" style="margin-bottom:20px">
@@ -114,10 +107,10 @@
                 </td>
                 <td>
                     <form method="POST"
-                          action="{{ route('admin.teachers.remove-subject', $ts) }}"
-                          onsubmit="return confirm('Remove {{ $ts->subject->subject_code }} from {{ $teacher->teacher_name }}?')">
+                        action="{{ route('admin.teachers.remove-subject', $ts) }}"
+                        onsubmit="return confirm('Remove {{ $ts->subject->subject_code }}?')"
                         @csrf @method('DELETE')
-                        <button class="btn-link-danger">Remove</button>
+                        <button type="submit" class="btn-link-danger">Remove</button>
                     </form>
                 </td>
             </tr>
