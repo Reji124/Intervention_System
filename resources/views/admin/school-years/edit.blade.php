@@ -40,6 +40,11 @@
     .req { color: var(--red); }
 
     /* ── Semester checkboxes ─────────────────────────────────────────────────── */
+    label.sem-check-item {
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
     .sem-check-group {
         display: flex;
         flex-direction: column;
@@ -50,13 +55,14 @@
     .sem-check-item {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         padding: 12px 16px;
         border: 1.5px solid var(--border);
         border-radius: 10px;
         cursor: pointer;
         transition: border-color .15s, background .15s;
         user-select: none;
+        gap: 12px;
+        flex-wrap: nowrap;
     }
 
     .sem-check-item:has(input:checked) {
@@ -68,6 +74,8 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        flex: 1;        /* fills all available space, pushes pill right */
+        min-width: 0;
     }
 
     .sem-check-item input[type="checkbox"] {
@@ -84,13 +92,16 @@
         color: var(--text-dark);
     }
 
-    /* Status pill on the right */
     .sem-status {
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
         padding: 2px 9px;
         border-radius: 20px;
+        flex-shrink: 0;
+        white-space: nowrap;
+        margin-left: auto;  /* pins pill to far right */
     }
+
     .sem-status-exists  { background: var(--green-bg); color: var(--green); }
     .sem-status-new     { background: var(--amber-bg); color: var(--amber); }
     .sem-status-remove  { background: var(--red-bg);   color: var(--red);   }
