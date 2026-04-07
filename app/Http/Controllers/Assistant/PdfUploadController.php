@@ -20,56 +20,77 @@ use Illuminate\Support\Facades\Storage;
 class PdfUploadController extends Controller
 {
     // ── Step 1: Show upload form ──────────────────────────────────────────────
-public function index()
-{
-    $schoolYears = \App\Models\SchoolYear::with('semesters')
-        ->orderByDesc('year_start')
-        ->get();
+    public function index()
+    {
+        $schoolYears = \App\Models\SchoolYear::with('semesters')
+            ->orderByDesc('year_start')
+            ->get();
 
-    $semesters = \App\Models\Semester::with('schoolYear')
-        ->orderByDesc('id')
-        ->get();
+        $semesters = \App\Models\Semester::with('schoolYear')
+            ->orderByDesc('id')
+            ->get();
 
-    $subjects = \App\Models\Subject::orderBy('subject_code')->get();
+        $subjects = \App\Models\Subject::orderBy('subject_code')->get();
 
-    $teachers = \App\Models\Teacher::orderBy('teacher_name')->get();
+        $teachers = \App\Models\Teacher::orderBy('teacher_name')->get();
 
-    $teacherSubjects = TeacherSubject::with([
-            'subject',
-            'teacher',
-            'semester.schoolYear',
-        ])
-        ->orderBy('teacher_id')
-        ->get();
+        $teacherSubjects = TeacherSubject::with([
+                'subject',
+                'teacher',
+                'semester.schoolYear',
+            ])
+            ->orderBy('teacher_id')
+            ->get();
 
-    $activeSemester = Semester::with('schoolYear')
-        ->where('is_active', true)->first()
-        ?? Semester::with('schoolYear')->latest('id')->first();
+        $activeSemester = Semester::with('schoolYear')
+            ->where('is_active', true)->first()
+            ?? Semester::with('schoolYear')->latest('id')->first();
 
-    $tsJson = $teacherSubjects->map(function ($ts) {
-        return [
-            'id'           => $ts->id,
-            'semester_id'  => $ts->semester_id,
-            'subject_id'   => $ts->subject_id,
-            'teacher_id'   => $ts->teacher->id,
-            'teacher_name' => $ts->teacher->teacher_name,
-            'subject_code' => $ts->subject->subject_code,
-            'subject_name' => $ts->subject->subject_name,
-            'section'      => $ts->section,
-            'semester_name'=> $ts->semester->semester_name,
-        ];
-    })->values();
+        $tsJson = $teacherSubjects->map(function ($ts) {
+            return [
+                'id'           => $ts->id,
+                'semester_id'  => $ts->semester_id,
+                'subject_id'   => $ts->subject_id,
+                'teacher_id'   => $ts->teacher->id,
+                'teacher_name' => $ts->teacher->teacher_name,
+                'subject_code' => $ts->subject->subject_code,
+                'subject_name' => $ts->subject->subject_name,
+                'section'      => $ts->section,
+                'semester_name'=> $ts->semester->semester_name,
+            ];
+        })->values();
 
-    return view('assistant.upload.index', compact(
-        'schoolYears',
-        'semesters',
-        'subjects',
-        'teachers',
-        'teacherSubjects',
-        'tsJson',
-        'activeSemester',
-    ));
-}
+        // ── Build locked exam map ────────────────────────────────────────────
+        // Locked = exam has at least one ExamResult (master list uploaded)
+        //          AND item_matrix_data is not null (matrix uploaded).
+        // Shape: { "<teacher_subject_id>": ["prelim", "midterm", ...] }
+        $tsIds = $teacherSubjects->pluck('id')->toArray();
+
+        $examRows = Exam::whereIn('teacher_subject_id', $tsIds)
+            ->withCount('examResults')
+            ->get();
+
+        $lockedExams = [];
+        foreach ($examRows as $exam) {
+            $hasMasterList = $exam->exam_results_count > 0;
+            $hasItemMatrix = !empty($exam->item_matrix_data);
+
+            if ($hasMasterList && $hasItemMatrix) {
+                $lockedExams[$exam->teacher_subject_id][] = $exam->exam_type;
+            }
+        }
+
+        return view('assistant.upload.index', compact(
+            'schoolYears',
+            'semesters',
+            'subjects',
+            'teachers',
+            'teacherSubjects',
+            'tsJson',
+            'activeSemester',
+            'lockedExams',
+        ));
+    }
 
     // ── Step 2: Parse PDFs → show review ─────────────────────────────────────
     public function parse(Request $request)
@@ -80,6 +101,21 @@ public function index()
             'master_list'        => 'required|file|mimes:pdf|max:10240',
             'item_matrix'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
+
+        // ── Guard: reject if already fully locked ────────────────────────────
+        $existingExam = Exam::where('teacher_subject_id', $request->teacher_subject_id)
+            ->where('exam_type', $request->exam_type)
+            ->withCount('examResults')
+            ->first();
+
+        if (
+            $existingExam &&
+            $existingExam->exam_results_count > 0 &&
+            !empty($existingExam->item_matrix_data)
+        ) {
+            return back()->withInput()
+                ->with('error', 'This exam already has both a master list and item matrix uploaded. It cannot be re-uploaded.');
+        }
 
         // ── Master list ──────────────────────────────────────────────────────
         $masterPath = $request->file('master_list')
@@ -187,7 +223,7 @@ public function index()
 
         $saved      = 0;
         $skipped    = 0;
-        $uploaderId = Auth::id(); // ← capture the assistant's user ID
+        $uploaderId = Auth::id();
 
         DB::transaction(function () use ($request, $matrixJson, $uploaderId, &$saved, &$skipped) {
 
@@ -199,7 +235,7 @@ public function index()
                 [
                     'item_analysis_path' => null,
                     'item_matrix_data'   => $matrixJson,
-                    'uploaded_by'        => $uploaderId, // ← stamp on first create
+                    'uploaded_by'        => $uploaderId,
                 ]
             );
 

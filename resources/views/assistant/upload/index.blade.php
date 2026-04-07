@@ -25,11 +25,13 @@
     select:focus, input:focus { border-color:var(--teal-light); background:var(--white); box-shadow:0 0 0 3px rgba(29,158,117,.1); }
     select:disabled { opacity:.5; cursor:not-allowed; background:#f0ece3; }
     select option { font-size:13px; padding:6px; }
+    select option:disabled { color:#aaa; font-style:italic; }
     .context-reveal { display:flex; align-items:center; gap:10px; padding:12px 14px; background:#f0faf7; border:1px solid #9fe1cb; border-radius:8px; font-size:13px; color:var(--teal); margin-top:4px; transition:all .3s; }
     .context-reveal.hidden { display:none; }
     .context-reveal svg { width:16px; height:16px; flex-shrink:0; }
     .context-reveal strong { font-weight:600; }
     .ts-warning { display:none; margin-top:6px; padding:10px 14px; background:var(--red-bg,#fff0f0); border:1px solid #f5c6c6; border-radius:8px; font-size:12px; color:var(--red,#c0392b); }
+    .locked-notice { display:none; margin-top:6px; padding:10px 14px; background:#fff8e1; border:1px solid #ffe082; border-radius:8px; font-size:12px; color:#7c5e00; }
     .divider { border:none; border-top:1px solid var(--border); }
     .upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     .file-upload-area { border:2px dashed var(--border); border-radius:10px; padding:24px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; transition:all .2s; text-align:center; position:relative; background:#faf8f5; }
@@ -149,22 +151,14 @@
             <p class="field-error">{{ $message }}</p>
             @enderror
 
-            <div class="ts-warning" id="ts-warning">
-                No class found for this combination. Make sure this subject, semester, and teacher are set up by the admin.
-            </div>
-
-            <div class="context-reveal hidden" id="context-reveal">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>Class identified: <strong id="context-text"></strong></span>
-            </div>
-
-            @error('teacher_subject_id')
-            <p class="field-error">{{ $message }}</p>
-            @enderror
-
             {{-- Warning: no matching class found --}}
             <div class="ts-warning" id="ts-warning">
                 No class found for this combination. Make sure this subject, semester, and teacher are set up by the admin.
+            </div>
+
+            {{-- Notice: selected exam type is locked --}}
+            <div class="locked-notice" id="locked-notice">
+                ⚠️ This exam type is already complete — both the master list and item matrix have been uploaded. Select a different exam type to continue.
             </div>
 
             {{-- Confirm: resolved class context --}}
@@ -228,17 +222,20 @@
 
 @push('scripts')
 <script>
-const TS_DATA = @json($tsJson);
+const TS_DATA     = @json($tsJson);
+// Shape: { "42": ["prelim", "midterm"], "57": ["final"], ... }
+const LOCKED_EXAMS = @json($lockedExams);
 
-const selSY       = document.getElementById('sel-sy');
-const selSem      = document.getElementById('sel-sem');
-const selSubject  = document.getElementById('sel-subject');
-const selExamType = document.getElementById('sel-exam-type');
-const selTeacher  = document.getElementById('sel-teacher');
-const selSection  = document.getElementById('sel-section');
-const sectionField= document.getElementById('section-field');
-const resolvedId  = document.getElementById('resolved-ts-id');
-const warning     = document.getElementById('ts-warning');
+const selSY         = document.getElementById('sel-sy');
+const selSem        = document.getElementById('sel-sem');
+const selSubject    = document.getElementById('sel-subject');
+const selExamType   = document.getElementById('sel-exam-type');
+const selTeacher    = document.getElementById('sel-teacher');
+const selSection    = document.getElementById('sel-section');
+const sectionField  = document.getElementById('section-field');
+const resolvedId    = document.getElementById('resolved-ts-id');
+const warning       = document.getElementById('ts-warning');
+const lockedNotice  = document.getElementById('locked-notice');
 const contextReveal = document.getElementById('context-reveal');
 const contextText   = document.getElementById('context-text');
 const submitBtn     = document.getElementById('submit-btn');
@@ -247,10 +244,47 @@ const semOpts     = Array.from(selSem.options).slice(1).map(o => o.cloneNode(tru
 const subjectOpts = Array.from(selSubject.options).slice(1).map(o => o.cloneNode(true));
 const teacherOpts = Array.from(selTeacher.options).slice(1).map(o => o.cloneNode(true));
 
+// All defined exam type values in order
+const ALL_EXAM_TYPES = [
+    { value: 'prelim',   label: 'Prelim' },
+    { value: 'midterm',  label: 'Midterm' },
+    { value: 'prefinal', label: 'Pre-Final' },
+    { value: 'final',    label: 'Final' },
+];
+
 function resetSelect(sel, placeholder) {
     sel.innerHTML = `<option value="">${placeholder}</option>`;
     sel.disabled  = true;
     sel.value     = '';
+}
+
+/**
+ * Rebuild the exam type <select> options based on which exam types are
+ * locked for the currently-resolved teacher_subject_id.
+ * Locked options are shown but disabled with a "(complete)" suffix.
+ */
+function rebuildExamTypeOptions(tsId) {
+    const currentVal  = selExamType.value;
+    const lockedTypes = tsId ? (LOCKED_EXAMS[String(tsId)] || []) : [];
+
+    selExamType.innerHTML = '<option value="">— Select exam type —</option>';
+
+    ALL_EXAM_TYPES.forEach(({ value, label }) => {
+        const opt      = document.createElement('option');
+        opt.value      = value;
+        const isLocked = lockedTypes.includes(value);
+        opt.textContent = isLocked ? `${label} (complete — locked)` : label;
+        opt.disabled    = isLocked;
+        selExamType.appendChild(opt);
+    });
+
+    // Restore previous selection only if it's not locked
+    const lockedSet = new Set(lockedTypes);
+    if (currentVal && !lockedSet.has(currentVal)) {
+        selExamType.value = currentVal;
+    } else {
+        selExamType.value = '';
+    }
 }
 
 function resolve() {
@@ -268,20 +302,22 @@ function resolve() {
     const allChosen = semId && subjectId && teacherId;
 
     if (!allChosen || matches.length === 0) {
-        // Not enough chosen, or no match
         resolvedId.value = '';
         sectionField.style.display = 'none';
         selSection.innerHTML = '<option value="">— Select section —</option>';
-        warning.style.display = allChosen && matches.length === 0 ? 'block' : 'none';
+        warning.style.display      = allChosen && matches.length === 0 ? 'block' : 'none';
+        lockedNotice.style.display = 'none';
         contextReveal.classList.add('hidden');
         submitBtn.disabled = true;
+        // Reset exam type options (no ts resolved)
+        rebuildExamTypeOptions(null);
+        selExamType.disabled = true;
         return;
     }
 
     warning.style.display = 'none';
 
     if (matches.length === 1) {
-        // Single match — resolve directly, hide section picker
         sectionField.style.display = 'none';
         resolvedId.value = matches[0].id;
     } else {
@@ -301,8 +337,20 @@ function resolve() {
         resolvedId.value = selectedTs ? selectedTs.id : '';
     }
 
-    const match = TS_DATA.find(ts => String(ts.id) === resolvedId.value);
-    const fullyReady = match && examType;
+    // Rebuild exam type dropdown with locks for the resolved TS
+    rebuildExamTypeOptions(resolvedId.value || null);
+    selExamType.disabled = !resolvedId.value;
+
+    // Check if selected exam type is locked
+    const tsId       = resolvedId.value;
+    const lockedTypes = tsId ? (LOCKED_EXAMS[String(tsId)] || []) : [];
+    const isLocked   = examType && lockedTypes.includes(examType);
+
+    lockedNotice.style.display = isLocked ? 'block' : 'none';
+
+    const match      = TS_DATA.find(ts => String(ts.id) === resolvedId.value);
+    const fullyReady = match && examType && !isLocked;
+
     submitBtn.disabled = !fullyReady;
 
     if (fullyReady) {
@@ -333,7 +381,9 @@ selSY.addEventListener('change', function () {
     resetSelect(selTeacher, '— Select teacher —');
     selExamType.disabled = true;
     selExamType.value    = '';
+    rebuildExamTypeOptions(null);
     sectionField.style.display = 'none';
+    lockedNotice.style.display = 'none';
     resolve();
 });
 
@@ -351,7 +401,9 @@ selSem.addEventListener('change', function () {
     resetSelect(selTeacher, '— Select teacher —');
     selExamType.disabled = true;
     selExamType.value    = '';
+    rebuildExamTypeOptions(null);
     sectionField.style.display = 'none';
+    lockedNotice.style.display = 'none';
     resolve();
 });
 
@@ -371,7 +423,9 @@ selSubject.addEventListener('change', function () {
     selTeacher.disabled = !subjectId || validTeacherIds.size === 0;
     selExamType.disabled = true;
     selExamType.value    = '';
+    rebuildExamTypeOptions(null);
     sectionField.style.display = 'none';
+    lockedNotice.style.display = 'none';
     resolve();
 });
 
@@ -379,6 +433,7 @@ selTeacher.addEventListener('change', function () {
     selExamType.value = '';
     selExamType.disabled = true;
     sectionField.style.display = 'none';
+    lockedNotice.style.display = 'none';
 
     const semId     = selSem.value;
     const subjectId = selSubject.value;
