@@ -92,14 +92,6 @@
 
     .subj-card:last-child { margin-bottom: 0; }
 
-    .subj-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 16px;
-        background: #f9fafb;
-        border-bottom: 1px solid #e5e7eb;
-    }
 
     .subject-code-pill {
         flex-shrink: 0;
@@ -228,6 +220,43 @@
         color: #9ca3af;
         font-size: 0.9rem;
     }
+
+    .subj-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        cursor: pointer;          /* ← new */
+        user-select: none;        /* ← new */
+        transition: background 0.15s;
+    }
+
+    .subj-header:hover { background: #f3f4f6; } /* ← new */
+
+    .subj-body {
+        display: none;            /* ← hidden by default */
+    }
+
+    .subj-body.open {
+        display: block;           /* ← shown when toggled */
+    }
+
+    .toggle-icon {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        color: #9ca3af;
+        transition: transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .subj-header.open .toggle-icon {
+        transform: rotate(180deg);
+    }
 </style>
 
 @php
@@ -272,11 +301,11 @@
 
                 @foreach($yearSubjects as $subject)
                     <div class="subj-card">
-                        <div class="subj-header">
+                        <div class="subj-header" onclick="toggleSubject(this)">
                             <span class="subject-code-pill">{{ $subject->subject_code }}</span>
                             <span class="subj-name">{{ $subject->subject_name }}</span>
                             <span class="badge-category">{{ $subject->category }}</span>
-                            <div class="action-group">
+                            <div class="action-group" onclick="event.stopPropagation()">
                                 <a href="{{ route('admin.subjects.edit', $subject) }}" class="btn-action btn-action-edit">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -285,8 +314,8 @@
                                     Edit
                                 </a>
                                 <form class="delete-form" method="POST"
-                                      action="{{ route('admin.subjects.destroy', $subject) }}"
-                                      onsubmit="return confirm('Delete {{ $subject->subject_name }}?')">
+                                    action="{{ route('admin.subjects.destroy', $subject) }}"
+                                    onsubmit="return confirm('Delete {{ $subject->subject_name }}?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn-action btn-action-delete">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -299,28 +328,35 @@
                                     </button>
                                 </form>
                             </div>
+                            <span class="toggle-icon">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </span>
                         </div>
 
-                        @if($subject->courses->isNotEmpty())
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Department</th>
-                                        <th>Course</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($subject->courses as $course)
+                        <div class="subj-body"> {{-- no 'open' class = hidden by default --}}
+                            @if($subject->courses->isNotEmpty())
+                                <table>
+                                    <thead>
                                         <tr>
-                                            <td class="td-dept">{{ $course->department->department_name ?? '—' }}</td>
-                                            <td>{{ $course->course_name }}</td>
+                                            <th>Department</th>
+                                            <th>Course</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <div class="empty-row">No courses assigned to this subject.</div>
-                        @endif
+                                    </thead>
+                                    <tbody>
+                                        @foreach($subject->courses as $course)
+                                            <tr>
+                                                <td class="td-dept">{{ $course->department->department_name ?? '—' }}</td>
+                                                <td>{{ $course->course_name }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @else
+                                <div class="empty-row">No courses assigned to this subject.</div>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
 
@@ -337,6 +373,11 @@ function switchYear(year, el) {
     document.querySelectorAll('.year-panel').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
     document.getElementById('year-panel-' + year).classList.add('active');
+}
+
+function toggleSubject(header) {
+    header.classList.toggle('open');
+    header.nextElementSibling.classList.toggle('open');
 }
 </script>
 
