@@ -393,6 +393,19 @@
             .panel-left { display: none; }
             .panel-right { padding: 32px 20px; }
         }
+
+        .panel-motto {
+            margin-top: 24px;
+            font-family: 'DM Serif Display', serif;
+            font-size: 13px;
+            font-style: italic;
+            color: var(--gold-light);
+            opacity: 0.75;
+            line-height: 1.6;
+            max-width: 280px;
+            padding-left: 12px;
+            border-left: 2px solid rgba(201,151,58,.35);
+        }
     </style>
 </head>
 <body>
@@ -409,15 +422,16 @@
                         <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2zm-1 13l-3-3 1.41-1.41L11 12.17l4.59-4.58L17 9l-6 6z"/>
                     </svg>
                 </div>
-                <span class="brand-name">Intervention System</span>
+                <span class="brand-name">Teacher Performance Intervention System</span>
             </div>
 
             <h1 class="panel-headline">
                 Track. <em>Intervene.</em><br>Improve.
             </h1>
             <p class="panel-sub">
-                A faculty tool for monitoring student performance and flagging at-risk learners before it's too late.
+                A faculty tool for monitoring teacher performance and flagging at-risk learners before it's too late.
             </p>
+            <p class="panel-motto">"Data-Driven Insights for Better Teaching Outcomes."</p>
         </div>
 
         <div class="panel-stats">
