@@ -48,14 +48,14 @@ class InterventionController extends Controller
             $schoolYears = SchoolYear::with('semesters')->orderByDesc('year_start')->get();
             $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
             $departments = Department::orderBy('department_name')->get();
-            $subjects = Subject::orderBy('subject_code')->get();
+            $subjects    = Subject::orderBy('subject_code')->get();
             $teachers    = Teacher::with([
-                                'teacherSubjects.subject',
-                                'teacherSubjects.semester',
-                                'notes',
-                            ])
-                                  ->orderBy('teacher_name')
-                                  ->get();
+                               'teacherSubjects.subject',
+                               'teacherSubjects.semester',
+                               'notes',
+                           ])
+                           ->orderBy('teacher_name')
+                           ->get();
 
             $categories = DB::table('subjects')
                             ->select(DB::raw('DISTINCT category'))
@@ -78,7 +78,7 @@ class InterventionController extends Controller
             // ── Main query ────────────────────────────────────────────────────
             $tsQuery = TeacherSubject::with([
                 'teacher',
-                'subject',             // ← fixed
+                'subject',
                 'semester.schoolYear',
                 'exams.examResults.student',
                 'exams.examResults.exam',
@@ -96,12 +96,12 @@ class InterventionController extends Controller
 
             if ($selectedDept) {
                 $tsQuery->whereHas('subject', fn($q) =>
-                    $q->where('department_id', $selectedDept));
+                    $q->forDepartment($selectedDept));
             }
 
             if ($selectedCat) {
                 $tsQuery->whereHas('subject', fn($q) =>
-                    $q->whereRaw('LOWER(category) = LOWER(?)', [$selectedCat]));
+                    $q->forCategory($selectedCat));
             }
 
             if ($selectedSubject) {
@@ -114,7 +114,7 @@ class InterventionController extends Controller
 
             $teacherSubjects = $tsQuery->orderBy('teacher_id')->get();
 
-            // ── Load teacher notes for active semester ─────────────────────────
+            // ── Load teacher notes ─────────────────────────────────────────────
             $notesSemesterId = $selectedSem ?? $activeSemester?->id;
 
             try {
@@ -122,64 +122,63 @@ class InterventionController extends Controller
                     ->get()
                     ->keyBy('teacher_id');
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning('teacher_notes table not ready: ' . $e->getMessage());
+                Log::warning('teacher_notes table not ready: ' . $e->getMessage());
                 $teacherNotes = collect();
             }
 
-            // ── Build grouped structure (mirrors assistant controller) ─────────
-                        $grouped = $teacherSubjects
-                            ->filter(fn($ts) => $ts->teacher && $ts->subject)
-                            ->groupBy(fn($ts) => $ts->teacher->teacher_name)
-                            ->map(function ($teacherTSList) use ($teacherNotes) {
-                                $teacher     = $teacherTSList->first()->teacher;
-                                $teacherNote = $teacherNotes->get($teacher->id);
+            // ── Build grouped structure ────────────────────────────────────────
+            $grouped = $teacherSubjects
+                ->filter(fn($ts) => $ts->teacher && $ts->subject)
+                ->groupBy(fn($ts) => $ts->teacher->teacher_name)
+                ->map(function ($teacherTSList) use ($teacherNotes) {
+                    $teacher     = $teacherTSList->first()->teacher;
+                    $teacherNote = $teacherNotes->get($teacher->id);
 
-                                return $teacherTSList->groupBy(function ($ts) {
-                                    return $ts->subject->subject_code
-                                        . ' — ' . $ts->subject->subject_name
-                                        . ($ts->section ? ' (' . $ts->section . ')' : '');
-                                })->map(function ($subjectTSList) use ($teacherNote) {
+                    return $teacherTSList->groupBy(function ($ts) {
+                        return $ts->subject->subject_code
+                            . ' — ' . $ts->subject->subject_name
+                            . ($ts->section ? ' (' . $ts->section . ')' : '');
+                    })->map(function ($subjectTSList) use ($teacherNote) {
 
-                                    $allSubjectResults = $subjectTSList->flatMap(
-                                        fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
-                                    );
+                        $allSubjectResults = $subjectTSList->flatMap(
+                            fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
+                        );
 
-                                    // ── exactly like assistant: flatMap exams then group by exam_type
-                                    $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
-                                        ->groupBy('exam_type')
-                                        ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {
-                                            $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
-                                            $failingResults = $allResults->where('remark', 'fail')
-                                                                        ->sortBy('percentage')
-                                                                        ->values();
-                                            $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
-                                            $anyExam        = $examsOfType->first();
+                        $examTypes = $subjectTSList->flatMap(fn($ts) => $ts->exams)
+                            ->groupBy('exam_type')
+                            ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {
+                                $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
+                                $failingResults = $allResults->where('remark', 'fail')
+                                                             ->sortBy('percentage')
+                                                             ->values();
+                                $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
+                                $anyExam        = $examsOfType->first();
 
-                                            return [
-                                                'teacher_note'    => $teacherNote,
-                                                'teacher_subject' => $subjectTSList->first(),
-                                                'all_results'     => $allResults,
-                                                'failing_results' => $failingResults,
-                                                'pass_count'      => $allResults->where('remark', 'pass')->count(),
-                                                'fail_count'      => $failingResults->count(),
-                                                'total_count'     => $allResults->count(),
-                                                'exam'            => $examWithMatrix ?? $anyExam,
-                                            ];
-                                        });
-
-                                    return [
-                                        'exam_types'      => $examTypes,
-                                        'pass_count'      => $allSubjectResults->where('remark', 'pass')->count(),
-                                        'fail_count'      => $allSubjectResults->where('remark', 'fail')->count(),
-                                        'total_count'     => $allSubjectResults->count(),
-                                        'pass_rate'       => $allSubjectResults->count() > 0
-                                            ? round(($allSubjectResults->where('remark', 'pass')->count() / $allSubjectResults->count()) * 100)
-                                            : 0,
-                                        'teacher_note'    => $teacherNote,
-                                        'teacher_subject' => $subjectTSList->first(),
-                                    ];
-                                });
+                                return [
+                                    'teacher_note'    => $teacherNote,
+                                    'teacher_subject' => $subjectTSList->first(),
+                                    'all_results'     => $allResults,
+                                    'failing_results' => $failingResults,
+                                    'pass_count'      => $allResults->where('remark', 'pass')->count(),
+                                    'fail_count'      => $failingResults->count(),
+                                    'total_count'     => $allResults->count(),
+                                    'exam'            => $examWithMatrix ?? $anyExam,
+                                ];
                             });
+
+                        return [
+                            'exam_types'      => $examTypes,
+                            'pass_count'      => $allSubjectResults->where('remark', 'pass')->count(),
+                            'fail_count'      => $allSubjectResults->where('remark', 'fail')->count(),
+                            'total_count'     => $allSubjectResults->count(),
+                            'pass_rate'       => $allSubjectResults->count() > 0
+                                ? round(($allSubjectResults->where('remark', 'pass')->count() / $allSubjectResults->count()) * 100)
+                                : 0,
+                            'teacher_note'    => $teacherNote,
+                            'teacher_subject' => $subjectTSList->first(),
+                        ];
+                    });
+                });
 
             $examIds      = $teacherSubjects->flatMap(fn($ts) => $ts->exams->pluck('id'));
             $totalFailing = $examIds->isNotEmpty()
@@ -255,60 +254,96 @@ class InterventionController extends Controller
     // TEACHER NOTES
     // ══════════════════════════════════════════════════════════════════════════
 
-public function upsertNote(Request $request, Teacher $teacher)
-{
-    Log::info('upsertNote called', [
-        'teacher_id'  => $teacher->id,
-        'semester_id' => $request->semester_id,
-        'status'      => $request->status,
-        'notes'       => $request->notes,
-    ]);
-
-    $request->validate([
-        'semester_id' => 'nullable|exists:semesters,id',
-        'status'      => 'required|in:no_status,on_track,needs_followup,intervention_active,resolved',
-        'notes'       => 'nullable|string|max:5000',
-    ]);
-
-    $semesterId = $request->semester_id ?: null;
-
-    $note = TeacherNote::where('teacher_id', $teacher->id)
-        ->where(function ($q) use ($semesterId) {
-            if ($semesterId) {
-                $q->where('semester_id', $semesterId);
-            } else {
-                $q->whereNull('semester_id');
-            }
-        })
-        ->first();
-
-    if ($note) {
-        $note->update([
-            'status'     => $request->status,
-            'notes'      => $request->notes,
-            'updated_by' => Auth::id(),
-        ]);
-    } else {
-        $note = TeacherNote::create([
+    public function upsertNote(Request $request, Teacher $teacher)
+    {
+        Log::info('upsertNote called', [
             'teacher_id'  => $teacher->id,
-            'semester_id' => $semesterId,
+            'semester_id' => $request->semester_id,
             'status'      => $request->status,
             'notes'       => $request->notes,
-            'updated_by'  => Auth::id(),
+        ]);
+
+        $request->validate([
+            'semester_id' => 'nullable|exists:semesters,id',
+            'status'      => 'required|in:no_status,on_track,needs_followup,intervention_active,resolved',
+            'notes'       => 'nullable|string|max:5000',
+        ]);
+
+        $semesterId = $request->semester_id ?: null;
+
+        $note = TeacherNote::where('teacher_id', $teacher->id)
+            ->where(function ($q) use ($semesterId) {
+                if ($semesterId) {
+                    $q->where('semester_id', $semesterId);
+                } else {
+                    $q->whereNull('semester_id');
+                }
+            })
+            ->first();
+
+        if ($note) {
+            $note->update([
+                'status'     => $request->status,
+                'notes'      => $request->notes,
+                'updated_by' => Auth::id(),
+            ]);
+        } else {
+            $note = TeacherNote::create([
+                'teacher_id'  => $teacher->id,
+                'semester_id' => $semesterId,
+                'status'      => $request->status,
+                'notes'       => $request->notes,
+                'updated_by'  => Auth::id(),
+            ]);
+        }
+
+        $note->load('updatedByUser');
+
+        return response()->json([
+            'success'      => true,
+            'status'       => $note->status,
+            'status_label' => $note->status_label,
+            'notes'        => $note->notes,
+            'updated_by'   => $note->updatedByUser?->name ?? 'Admin',
+            'updated_at'   => $note->updated_at->format('M d, Y g:i A'),
         ]);
     }
 
-    $note->load('updatedByUser');
+    // ══════════════════════════════════════════════════════════════════════════
+    // SHARED: build a TeacherSubject query from request filters
+    // ══════════════════════════════════════════════════════════════════════════
 
-    return response()->json([
-        'success'      => true,
-        'status'       => $note->status,
-        'status_label' => $note->status_label,
-        'notes'        => $note->notes,
-        'updated_by'   => $note->updatedByUser?->name ?? 'Admin',
-        'updated_at'   => $note->updated_at->format('M d, Y g:i A'),
-    ]);
-}
+    private function buildFilteredQuery(Request $request)
+    {
+        $query = TeacherSubject::query();
+
+        if ($request->filled('semester_id')) {
+            $query->where('semester_id', $request->semester_id);
+        } elseif ($request->filled('school_year_id')) {
+            $query->whereHas('semester', fn($q) =>
+                $q->where('school_year_id', $request->school_year_id));
+        }
+
+        if ($request->filled('department_id')) {
+            $query->whereHas('subject', fn($q) =>
+                $q->forDepartment($request->department_id));
+        }
+
+        if ($request->filled('category')) {
+            $query->whereHas('subject', fn($q) =>
+                $q->forCategory($request->category));
+        }
+
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
+        if ($request->filled('teacher_id')) {
+            $query->where('teacher_id', $request->teacher_id);
+        }
+
+        return $query;
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // MASS DELETE (scoped to current filters)
@@ -317,43 +352,16 @@ public function upsertNote(Request $request, Teacher $teacher)
     public function massDelete(Request $request)
     {
         $request->validate([
-            'semester_id'   => 'nullable|exists:semesters,id',
-            'school_year_id'=> 'nullable|exists:school_years,id',
-            'department_id' => 'nullable|exists:departments,id',
-            'category'      => 'nullable|string',
-            'subject_id'    => 'nullable|exists:subjects,id',
-            'teacher_id'    => 'nullable|exists:teachers,id',
+            'semester_id'    => 'nullable|exists:semesters,id',
+            'school_year_id' => 'nullable|exists:school_years,id',
+            'department_id'  => 'nullable|exists:departments,id',
+            'category'       => 'nullable|string',
+            'subject_id'     => 'nullable|exists:subjects,id',
+            'teacher_id'     => 'nullable|exists:teachers,id',
         ]);
 
         try {
-            $tsQuery = TeacherSubject::query();
-
-            if ($request->filled('semester_id')) {
-                $tsQuery->where('semester_id', $request->semester_id);
-            } elseif ($request->filled('school_year_id')) {
-                $tsQuery->whereHas('semester', fn($q) =>
-                    $q->where('school_year_id', $request->school_year_id));
-            }
-
-            if ($request->filled('department_id')) {
-                $tsQuery->whereHas('subject', fn($q) =>
-                    $q->where('department_id', $request->department_id));
-            }
-
-            if ($request->filled('category')) {
-                $tsQuery->whereHas('subject', fn($q) =>
-                    $q->whereRaw('LOWER(category) = LOWER(?)', [$request->category]));
-            }
-
-            if ($request->filled('subject_id')) {
-                $tsQuery->where('subject_id', $request->subject_id);
-            }
-
-            if ($request->filled('teacher_id')) {
-                $tsQuery->where('teacher_id', $request->teacher_id);
-            }
-
-            $tsIds   = $tsQuery->pluck('id');
+            $tsIds   = $this->buildFilteredQuery($request)->pluck('id');
             $examIds = Exam::whereIn('teacher_subject_id', $tsIds)->pluck('id');
 
             $deletedResults = ExamResult::whereIn('exam_id', $examIds)->count();
@@ -364,7 +372,7 @@ public function upsertNote(Request $request, Teacher $teacher)
             });
 
             return response()->json([
-                'success' => true,
+                'success'         => true,
                 'deleted_exams'   => $examIds->count(),
                 'deleted_results' => $deletedResults,
             ]);
@@ -381,7 +389,8 @@ public function upsertNote(Request $request, Teacher $teacher)
 
     public function exportCsv(Request $request)
     {
-        $tsQuery = TeacherSubject::with([
+        $teacherSubjects = $this->buildFilteredQuery($request)
+            ->with([
                 'teacher',
                 'subject',
                 'semester.schoolYear',
@@ -389,34 +398,8 @@ public function upsertNote(Request $request, Teacher $teacher)
                 'exams.uploadedBy',
             ])
             ->whereHas('teacher')
-            ->whereHas('subject');
-
-        if ($request->filled('semester_id')) {
-            $tsQuery->where('semester_id', $request->semester_id);
-        } elseif ($request->filled('school_year_id')) {
-            $tsQuery->whereHas('semester', fn($q) =>
-                $q->where('school_year_id', $request->school_year_id));
-        }
-
-        if ($request->filled('department_id')) {
-            $tsQuery->whereHas('subject', fn($q) =>
-                $q->where('department_id', $request->department_id));
-        }
-
-        if ($request->filled('category')) {
-            $tsQuery->whereHas('subject', fn($q) =>
-                $q->whereRaw('LOWER(category) = LOWER(?)', [$request->category]));
-        }
-
-        if ($request->filled('subject_id')) {
-            $tsQuery->where('subject_id', $request->subject_id);
-        }
-
-        if ($request->filled('teacher_id')) {
-            $tsQuery->where('teacher_id', $request->teacher_id);
-        }
-
-        $teacherSubjects = $tsQuery->get();
+            ->whereHas('subject')
+            ->get();
 
         $filename = 'intervention_export_' . now()->format('Ymd_His') . '.csv';
 
@@ -432,19 +415,10 @@ public function upsertNote(Request $request, Teacher $teacher)
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($handle, [
-                'Teacher',
-                'Subject Code',
-                'Subject Name',
-                'Section',
-                'Exam Type',
-                'Semester',
-                'School Year',
-                'Student Name',
-                'Student Code',
-                'Raw Score',
-                'Percentage',
-                'Remark',
-                'Uploaded By',
+                'Teacher', 'Subject Code', 'Subject Name', 'Section',
+                'Exam Type', 'Semester', 'School Year',
+                'Student Name', 'Student Code',
+                'Raw Score', 'Percentage', 'Remark', 'Uploaded By',
             ]);
 
             foreach ($teacherSubjects as $ts) {
@@ -452,21 +426,20 @@ public function upsertNote(Request $request, Teacher $teacher)
                     foreach ($exam->examResults as $result) {
                         if (!$result->student) continue;
                         fputcsv($handle, [
-                            $ts->teacher->teacher_name ?? '—',
-                            $ts->subject->subject_code ?? '—',
-                            $ts->subject->subject_name ?? '—',
-                            $ts->section               ?? '—',
-                            ucfirst($exam->exam_type)  ?? '—',
-                            $ts->semester->semester_name        ?? '—',
+                            $ts->teacher->teacher_name                          ?? '—',
+                            $ts->subject->subject_code                          ?? '—',
+                            $ts->subject->subject_name                          ?? '—',
+                            $ts->section                                        ?? '—',
+                            ucfirst($exam->exam_type)                           ?? '—',
+                            $ts->semester->semester_name                        ?? '—',
                             ($ts->semester->schoolYear->year_start ?? '?')
-                                . '–'
-                                . ($ts->semester->schoolYear->year_end ?? '?'),
-                            $result->student->student_name ?? '—',
-                            $result->student->student_code ?? '—',
+                                . '–' . ($ts->semester->schoolYear->year_end ?? '?'),
+                            $result->student->student_name                      ?? '—',
+                            $result->student->student_code                      ?? '—',
                             $result->raw_score,
                             $result->percentage . '%',
                             ucfirst($result->remark),
-                            $exam->uploadedBy->name ?? '—',
+                            $exam->uploadedBy->name                             ?? '—',
                         ]);
                     }
                 }

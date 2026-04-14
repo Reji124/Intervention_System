@@ -10,6 +10,8 @@ class Subject extends Model
         'category', 'subject_code', 'year_level', 'subject_name',
     ];
 
+    // ── Relationships ──────────────────────────────────────────────────────
+
     public function courses()
     {
         return $this->belongsToMany(Course::class, 'subject_course')
@@ -29,13 +31,46 @@ class Subject extends Model
         return $this->hasMany(TeacherSubject::class);
     }
 
-    // Convenience: first course assigned (for legacy single-display use)
+    // ── Scopes ─────────────────────────────────────────────────────────────
+
+    /**
+     * Filter subjects that belong to a given department via the pivot.
+     * Use this instead of ->where('department_id', ...) which doesn't exist
+     * as a direct column on the subjects table.
+     *
+     * Usage:
+     *   Subject::forDepartment($deptId)->get();
+     *   $query->whereHas('subject', fn($q) => $q->forDepartment($deptId));
+     */
+    public function scopeForDepartment($query, $departmentId)
+    {
+        if (!$departmentId) return $query;
+
+        return $query->whereHas('departments', fn($q) =>
+            $q->where('departments.id', $departmentId)
+        );
+    }
+
+    /**
+     * Filter subjects by category, trimming whitespace to avoid
+     * mismatches from inconsistent DB values.
+     */
+    public function scopeForCategory($query, $category)
+    {
+        if (!$category) return $query;
+
+        return $query->whereRaw('LOWER(TRIM(category)) = ?', [
+            strtolower(trim($category))
+        ]);
+    }
+
+    // ── Accessors ──────────────────────────────────────────────────────────
+
     public function getCourseAttribute()
     {
         return $this->courses->first();
     }
 
-    // Convenience: first department assigned (for legacy single-display use)
     public function getDepartmentAttribute()
     {
         return $this->departments->first();
