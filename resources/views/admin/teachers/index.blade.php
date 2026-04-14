@@ -69,10 +69,40 @@
 
     .btn-action svg { flex-shrink: 0; }
     .delete-form { display: inline; margin: 0; padding: 0; }
+
+    /* ── Flash alerts ── */
+    .flash-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 16px;
+        border: 1.5px solid transparent;
+    }
+    .flash-alert svg { flex-shrink: 0; width: 16px; height: 16px; }
+    .flash-success {
+        background: #f0faf5;
+        border-color: #9fe1cb;
+        color: #1a6e3c;
+    }
+    .flash-error {
+        background: #fff5f5;
+        border-color: #ffc9c9;
+        color: #c92a2a;
+    }
 </style>
 
-@if(session('success'))
-    <div class="alert alert-success" style="margin-bottom:16px">{{ session('success') }}</div>
+
+@if(session('error'))
+    <div class="flash-alert flash-error">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        {{ session('error') }}
+    </div>
 @endif
 
 <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
@@ -132,11 +162,12 @@
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                         Edit
+    
                     </a>
 
                     {{-- Delete --}}
                     <form class="delete-form" method="POST" action="{{ route('admin.teachers.destroy', $teacher) }}"
-                          onsubmit="return confirm('Delete {{ addslashes($teacher->teacher_name) }}?')"
+                          onsubmit="return confirm('Delete {{ addslashes($teacher->teacher_name) }}?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn-action btn-action-delete">

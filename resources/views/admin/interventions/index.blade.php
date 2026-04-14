@@ -1182,11 +1182,16 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
     const teacher = document.getElementById('f-teacher');
     if (!sy) return;
 
+    // Snapshot all options once on load
     const allOpts = {};
     [sy, sem, dept, cat, subj, teacher].forEach(sel => {
         allOpts[sel.id] = Array.from(sel.options)
             .filter(o => o.value !== '')
-            .map(o => ({ node: o.cloneNode(true), value: o.value, dataset: { ...o.dataset } }));
+            .map(o => ({
+                node:    o.cloneNode(true),
+                value:   o.value,
+                dataset: Object.assign({}, o.dataset)  // plain object copy
+            }));
     });
 
     function rebuild(select, keepFn) {
@@ -1202,26 +1207,43 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
         select.value = found ? current : '';
     }
 
-    function filterSem()     { rebuild(sem,     ({ dataset }) => !sy.value   || dataset.sy   === sy.value); }
-    function filterTeacher() { rebuild(teacher, ({ dataset }) => {
-        const ok1 = !sem.value  || (dataset.sem  || '').split(',').includes(sem.value);
-        const ok2 = !dept.value || (dataset.dept || '').split(',').includes(dept.value);
-        return ok1 && ok2;
-    }); }
-    function filterSubject() { rebuild(subj, ({ dataset }) =>
-        (!dept.value || dataset.dept === dept.value) &&
-        (!cat.value  || dataset.cat  === cat.value)
-    ); }
+    // Semester: filter by school year
+    function filterSem() {
+        rebuild(sem, ({ dataset }) =>
+            !sy.value || dataset.sy === sy.value
+        );
+    }
 
+    // Subject: filter by dept AND category — trim both sides to avoid whitespace mismatches
+    function filterSubject() {
+        rebuild(subj, ({ dataset }) => {
+            const deptOk = !dept.value || String(dataset.dept || '').trim() === String(dept.value).trim();
+            const catOk  = !cat.value  || String(dataset.cat  || '').trim() === String(cat.value).trim();
+            return deptOk && catOk;
+        });
+    }
+
+    // Teacher: filter by active semester AND dept
+    function filterTeacher() {
+        rebuild(teacher, ({ dataset }) => {
+            const semOk  = !sem.value  || String(dataset.sem  || '').split(',').map(s => s.trim()).includes(String(sem.value).trim());
+            const deptOk = !dept.value || String(dataset.dept || '').split(',').map(s => s.trim()).includes(String(dept.value).trim());
+            return semOk && deptOk;
+        });
+    }
+
+    // Wire up change events
     sy.addEventListener('change',   () => { filterSem(); filterTeacher(); });
     sem.addEventListener('change',  () => { filterTeacher(); });
     dept.addEventListener('change', () => { filterSubject(); filterTeacher(); });
     cat.addEventListener('change',  () => { filterSubject(); });
 
-    if (sy.value)               filterSem();
-    if (sem.value||dept.value)  filterTeacher();
-    if (dept.value||cat.value)  filterSubject();
+    // Run on page load if filters are pre-selected
+    if (sy.value)                        filterSem();
+    if (sem.value || dept.value)         filterTeacher();
+    if (dept.value || cat.value)         filterSubject();
 })();
+
 </script>
 
 {{-- Pre-load existing note data into each notes button --}}
