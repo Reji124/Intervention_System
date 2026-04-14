@@ -217,9 +217,8 @@ class PdfUploadController extends Controller
         ]);
 
         // Pull session data BEFORE the transaction
-        $parsed     = session('item_matrix_parsed');
-        $matrixJson = $parsed ? $this->buildMatrixJson($parsed) : null;
-        session()->forget('item_matrix_parsed');
+    $editedJson = $request->input('item_matrix_edited_json');
+    $matrixJson = $editedJson ? json_decode($editedJson, true) : null;
 
         $saved      = 0;
         $skipped    = 0;
