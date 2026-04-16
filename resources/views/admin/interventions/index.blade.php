@@ -28,13 +28,36 @@
 .btn-icon.btn-danger:disabled { opacity:.45;cursor:not-allowed; }
 
 /* ── Filter panel ─────────────────────────────────────────────────────────── */
-.filter-panel { background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px; }
+.filter-panel { background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;overflow: hidden; }
 .filter-panel-title { font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:4px; }
 .filter-panel-sub { font-size:12px;color:var(--text-soft);margin-bottom:16px; }
-.filter-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px; }
-.filter-group { display:flex;flex-direction:column;gap:6px; }
+.filter-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr 1fr; /* keep your layout */
+    gap: 16px; 
+    margin-bottom: 16px;
+    width: 100%; /* ← ensure grid respects parent width */
+}
+.filter-group { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px;
+    min-width: 0; /* ← allows grid children to shrink below content size */
+}
 .filter-group label { font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text-soft); }
-.filter-group select { padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;background:#faf8f5;border:1.5px solid var(--border);border-radius:8px;color:var(--text-dark);outline:none;transition:border-color .2s; }
+.filter-group select { 
+    padding: 9px 12px; 
+    font-family: 'DM Sans', sans-serif; 
+    font-size: 13px; 
+    background: #faf8f5; 
+    border: 1.5px solid var(--border); 
+    border-radius: 8px; 
+    color: var(--text-dark); 
+    outline: none; 
+    transition: border-color .2s;
+    width: 100%;    /* ← fill the group */
+    box-sizing: border-box; /* ← padding doesn't add to width */
+}
 .filter-group select:focus { border-color:var(--gold);background:var(--white); }
 .filter-actions { display:flex;align-items:center;gap:10px;padding-top:16px;border-top:1px solid var(--border); }
 .btn-apply { padding:10px 24px;background:var(--navy);color:var(--white);border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer; }
