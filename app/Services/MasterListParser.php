@@ -40,9 +40,6 @@ class MasterListParser
             $line = trim($line);
             if (empty($line)) continue;
 
-            // Match lines that start with a row number, e.g.:
-            // "2. ABCEDE, MICHAEL JR G 59843918 24 68.57"
-            // "1. 23 65.71"   ← missing name/code (flagged)
             if (! preg_match('/^(\d+)\.\s+(.*)$/', $line, $outer)) {
                 continue;
             }
@@ -50,19 +47,21 @@ class MasterListParser
             $rowNumber = (int) $outer[1];
             $rest      = trim($outer[2]);
 
-            // Try to extract trailing: raw_score percentage
-            // e.g. "59843918 24 68.57"  or  "23 65.71"
-            if (! preg_match('/^(.*?)\s+(\d+)\s+([\d.]+)\s*$/', $rest, $m)) {
+            // Grab only the first two standalone numbers we care about: [T] and Grade.
+            // Everything after (PR, Passed/Failed, or nothing) is ignored.
+            if (! preg_match(
+                '/^(.*?)\s+(\d+)\s+(\d+\.\d+)(?:\s+.*)?$/i',
+                $rest,
+                $m
+            )) {
                 continue;
             }
 
-            $before     = trim($m[1]); // everything before the last two numbers
-            $rawScore   = (int)   $m[2];
-            $percentage = (float) $m[3];
+            $before     = trim($m[1]);  // name + optional student code
+            $rawScore   = (int)   $m[2]; // plain integer just before the decimal
+            $percentage = (float) $m[3]; // always has decimal point e.g. 92.00
             $remark     = $percentage >= 75.0 ? 'pass' : 'fail';
 
-            // Now try to split $before into NAME + CODE
-            // Student code is an 8-digit number at the end of $before
             $studentName = '';
             $studentCode = '';
             $flagged     = false;
@@ -71,12 +70,10 @@ class MasterListParser
                 $studentName = trim($nc[1]);
                 $studentCode = trim($nc[2]);
             } else {
-                // No recognisable code — $before may be empty (row 1 case) or name only
                 $studentName = $before;
                 $studentCode = '';
             }
 
-            // Flag if either field is missing
             if (empty($studentName) || empty($studentCode)) {
                 $flagged = true;
             }
