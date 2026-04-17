@@ -41,7 +41,8 @@
         .nav-item.active svg { opacity:1; }
         .sb-footer { padding:16px 20px; border-top:1px solid var(--navy-line); position:relative; z-index:1; }
         .user-row { display:flex; align-items:center; gap:10px; }
-        .user-av { width:32px; height:32px; border-radius:50%; background:var(--teal-light); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:13px; color:var(--white); }
+        .user-av { width:32px; height:32px; border-radius:50%; background:var(--teal-light); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'DM Serif Display',serif; font-size:13px; color:var(--white); cursor:pointer; transition:opacity .15s; text-decoration:none; }
+        .user-av:hover { opacity:.8; }
         .user-name { font-size:12px; font-weight:500; color:var(--white); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .user-role { font-size:10px; color:rgba(255,255,255,.35); text-transform:uppercase; letter-spacing:.5px; }
         .logout-btn { background:none; border:none; cursor:pointer; color:rgba(255,255,255,.3); padding:4px; margin-left:auto; transition:color .15s; }
@@ -95,10 +96,17 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             Records
         </a>
+        <div class="nav-sec">Account</div>
+        <a href="{{ route('assistant.profile.index') }}" class="nav-item {{ request()->routeIs('assistant.profile*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            My Profile
+        </a>
     </nav>
     <div class="sb-footer">
         <div class="user-row">
-            <div class="user-av">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
+            <a href="{{ route('assistant.profile.index') }}" class="user-av" title="Edit profile">
+                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+            </a>
             <div style="flex:1;min-width:0">
                 <div class="user-name">{{ auth()->user()->name }}</div>
                 <div class="user-role">Student Assistant</div>

@@ -119,6 +119,17 @@ Route::prefix('assistant')
         Route::delete('exam-results/{examResult}',
             [\App\Http\Controllers\Assistant\InterventionController::class, 'destroyResult'])
             ->name('exam-results.destroy');
+
+        // Profile
+        Route::get('profile',
+            [\App\Http\Controllers\Assistant\ProfileController::class, 'index'])
+            ->name('profile.index');
+        Route::patch('profile/update',
+            [\App\Http\Controllers\Assistant\ProfileController::class, 'update'])
+            ->name('profile.update');
+        Route::patch('profile/password',
+            [\App\Http\Controllers\Assistant\ProfileController::class, 'password'])
+            ->name('profile.password');
     });
 
 Route::get('/dashboard', function () {
