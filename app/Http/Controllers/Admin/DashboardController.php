@@ -46,7 +46,7 @@ class DashboardController extends Controller
 
         $examBreakdown = [];
 
-        foreach (['prelim', 'midterm', 'pre_final', 'final'] as $type) {
+        foreach (['prelim', 'midterm', 'prefinal', 'final'] as $type) {
 
             $query = $this->resultsQuery($schoolYearId, $semesterId)
                 ->whereHas('exam', fn($q) => $q->where('exam_type', $type));

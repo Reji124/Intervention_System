@@ -349,7 +349,7 @@
                         $is1st   = str_contains($semName, '1');
                     @endphp
                     <span class="badge {{ $is1st ? 'badge-1st' : 'badge-2nd' }}">
-                        {{ $semName }} Sem
+                        {{ $semName }}
                     </span>
                     <span class="view-link">View →</span>
                 </div>

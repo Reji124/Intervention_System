@@ -11,7 +11,7 @@
     .upload-card-header h2 { font-family:'DM Serif Display',serif; font-size:20px; color:var(--text-dark); margin-bottom:4px; }
     .upload-card-header p { font-size:13px; color:var(--text-soft); }
     .upload-body { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
-    .step-label { font-size:12px; font-weight:600; color:var(--text-dark); margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .step-label { font-size:15px; font-weight:300; color:var(--text-dark); margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
     .field { display:flex; flex-direction:column; gap:6px; }
     .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
     label { font-size:12px; font-weight:500; color:var(--text-dark); }
@@ -173,7 +173,6 @@
         <div>
             <div class="step-label">Step 2 — Grading Method</div>
             <div class="field">
-                <label>Grading Method <span class="req">*</span></label>
                 <div style="display:flex;gap:12px;margin-top:4px">
                     <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;
                                 padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);

@@ -175,7 +175,7 @@
         <span style="font-size:12px;color:var(--text-soft)">Pass rate per exam type — all teachers</span>
     </div>
     <div class="breakdown-grid">
-        @foreach(['prelim' => 'Prelim', 'midterm' => 'Midterm', 'pre_final' => 'Pre-Final', 'final' => 'Final'] as $type => $label)
+        @foreach(['prelim' => 'Prelim', 'midterm' => 'Midterm', 'prefinal' => 'Pre-Final', 'final' => 'Final'] as $type => $label)
         @php
             $data      = $examBreakdown[$type] ?? ['pass_rate' => 0, 'pass' => 0, 'fail' => 0, 'total' => 0];
             $rate      = $data['pass_rate'];
