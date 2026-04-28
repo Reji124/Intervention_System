@@ -216,28 +216,30 @@ class PdfUploadController extends Controller
         $skipped    = 0;
         $uploaderId = Auth::id();
 
-        DB::transaction(function () use ($request, $matrixJson, $uploaderId, &$saved, &$skipped) {
+    DB::transaction(function () use ($request, $matrixJson, $uploaderId, &$saved, &$skipped) {
 
-            $exam = Exam::firstOrCreate(
-                [
-                    'teacher_subject_id' => $request->teacher_subject_id,
-                    'exam_type'          => $request->exam_type,
-                    'grading_method'     => $request->grading_method,
-                ],
-                [
-                    'item_analysis_path' => null,
-                    'item_matrix_data'   => $matrixJson,
-                    'uploaded_by'        => $uploaderId,
-                ]
-            );
+        $exam = Exam::firstOrCreate(
+            [
+                'teacher_subject_id' => $request->teacher_subject_id,
+                'exam_type'          => $request->exam_type,
+            ],
+            [
+                'grading_method'     => $request->grading_method,
+                'item_analysis_path' => null,
+                'item_matrix_data'   => $matrixJson,
+                'uploaded_by'        => $uploaderId,
+            ]
+        );
 
-            // Always overwrite matrix data and uploader if we have new parsed data
-            $updatePayload = ['uploaded_by' => $uploaderId];
-            if ($matrixJson) {
-                $updatePayload['item_matrix_data'] = $matrixJson;
-                $updatePayload['grading_method'] = $request->grading_method;
-            }
-            $exam->update($updatePayload);
+        // Always overwrite uploader and grading method
+        $updatePayload = [
+            'uploaded_by'    => $uploaderId,
+            'grading_method' => $request->grading_method,
+        ];
+        if ($matrixJson) {
+            $updatePayload['item_matrix_data'] = $matrixJson;
+        }
+        $exam->update($updatePayload);
 
             foreach ($request->students as $row) {
                 $name = trim($row['student_name'] ?? '');
