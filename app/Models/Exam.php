@@ -9,6 +9,7 @@ class Exam extends Model
     protected $fillable = [
         'teacher_subject_id',
         'exam_type',
+        'grading_method',
         'item_analysis_path',
         'item_matrix_data',
         'uploaded_by',
@@ -19,6 +20,15 @@ class Exam extends Model
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
+    public function computeFinalGrade(int $score, int $total): float
+    {
+        if ($total <= 0) return 0;
+
+        return match($this->grading_method ?? 'base_50') {
+            'base_20' => round(20 + ($score / $total * 80), 2),
+            default   => round(50 + ($score / $total * 50), 2),
+        };
+    }
 
     public function examResults()
     {

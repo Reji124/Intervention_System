@@ -160,6 +160,7 @@
 <input type="hidden" name="teacher_subject_id" value="{{ $context['teacher_subject_id'] }}">
 <input type="hidden" name="exam_type"           value="{{ $context['exam_type'] }}">
 <input type="hidden" name="item_matrix_path"    value="{{ $context['item_matrix_path'] ?? '' }}">
+<input type="hidden" name="grading_method" value="{{ $context['grading_method'] }}">
 
 {{-- This hidden field will carry the (possibly edited) matrix JSON to the store action --}}
 <input type="hidden" name="item_matrix_edited_json" id="item_matrix_edited_json"
@@ -191,6 +192,12 @@
         <div class="meta-item">
             <span class="meta-label">Semester</span>
             <span class="meta-value">{{ $context['semester'] }}</span>
+        </div>
+        <div class="meta-item">
+            <span class="meta-label">Grading Method</span>
+            <span class="meta-value">
+                {{ $context['grading_method'] === 'base_20' ? 'Base 20' : 'Base 50' }}
+            </span>
         </div>
     </div>
     <div class="summary-pills">

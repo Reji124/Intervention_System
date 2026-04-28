@@ -596,6 +596,11 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                                   class="badge badge-{{ strtolower($examType) }}">
                                 {{ ucfirst($examType) }}
                             </span>
+                            {{-- Grading method badge --}}
+                            <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;
+                                        background:#f0ece3;color:var(--text-mid);padding:1px 7px;border-radius:10px">
+                                {{ $exam?->grading_method === 'base_20' ? 'Base 20' : 'Base 50' }}
+                            </span>
                             @if($hasMatrix)
                             <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:1px 7px;border-radius:10px">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:9px;height:9px"><polyline points="20 6 9 17 4 12"/></svg>Matrix
@@ -665,7 +670,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                                         <td><span id="badge-{{ $result->id }}" class="badge badge-{{ $result->remark }}">{{ ucfirst($result->remark) }}</span></td>
                                         <td>
                                             <div class="row-actions">
-                                                <button class="btn-edit-row" onclick="openEdit({{ $result->id }}, {{ $result->raw_score }})">
+                                                <button class="btn-edit-row"
+                                                    onclick="openEdit({{ $result->id }}, {{ $result->raw_score }}, '{{ $exam?->grading_method ?? 'base_50' }}')">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                                     Edit
                                                 </button>
@@ -898,7 +904,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 @push('scripts')
 <script>
 const CSRF = '{{ csrf_token() }}';
-
+let editingGradingMethod = 'base_50';
 // ── Current filter state (passed to export / mass-delete) ─────────────────
 const FILTERS = {
     school_year_id: '{{ $selectedSY ?? '' }}',
@@ -942,8 +948,9 @@ function expandAll() {
 // ── Edit result modal ─────────────────────────────────────────────────────
 let editingResultId = null;
 
-function openEdit(resultId, rawScore) {
-    editingResultId = resultId;
+function openEdit(resultId, rawScore, gradingMethod) {
+    editingResultId      = resultId;
+    editingGradingMethod = gradingMethod;
     document.getElementById('edit-raw').value   = rawScore;
     document.getElementById('edit-total').value = '';
     document.getElementById('edit-preview').style.display = 'none';
@@ -961,7 +968,12 @@ function closeEdit() {
         const total = parseInt(document.getElementById('edit-total').value);
         const prev  = document.getElementById('edit-preview');
         if (raw >= 0 && total > 0) {
-            const pct    = ((raw / total) * 100).toFixed(2);
+            let pct;
+            if (editingGradingMethod === 'base_20') {
+                pct = (20 + (raw / total * 80)).toFixed(2);
+            } else {
+                pct = (50 + (raw / total * 50)).toFixed(2);
+            }
             const remark = pct >= 75 ? 'Pass' : 'Fail';
             document.getElementById('preview-pct').textContent    = pct + '%';
             document.getElementById('preview-remark').textContent = remark;

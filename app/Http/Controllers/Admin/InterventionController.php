@@ -218,9 +218,12 @@ class InterventionController extends Controller
             'total'     => 'required|integer|min:1',
         ]);
 
-        $rawScore   = (int) $request->raw_score;
-        $total      = (int) $request->total;
-        $percentage = round(($rawScore / $total) * 100, 2);
+        $rawScore = (int) $request->raw_score;
+        $total    = (int) $request->total;
+
+        // Use the exam's grading method formula
+        $exam       = $examResult->exam;
+        $percentage = $exam->computeFinalGrade($rawScore, $total);
         $remark     = $percentage >= 75.0 ? 'pass' : 'fail';
 
         $examResult->update([
@@ -230,10 +233,11 @@ class InterventionController extends Controller
         ]);
 
         return response()->json([
-            'success'    => true,
-            'raw_score'  => $rawScore,
-            'percentage' => $percentage,
-            'remark'     => $remark,
+            'success'         => true,
+            'raw_score'       => $rawScore,
+            'percentage'      => $percentage,
+            'remark'          => $remark,
+            'grading_method'  => $exam->grading_method,
         ]);
     }
 

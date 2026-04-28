@@ -169,10 +169,44 @@
         </div>
 
         <hr class="divider">
-
-        {{-- ── Step 2 ─────────────────────────────────────────────────────── --}}
+                {{-- ── Grading Method ─────────────────────────────────────────────── --}}
         <div>
-            <div class="step-label">Step 2 — Upload PDFs</div>
+            <div class="step-label">Step 2 — Grading Method</div>
+            <div class="field">
+                <label>Grading Method <span class="req">*</span></label>
+                <div style="display:flex;gap:12px;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;
+                                padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);
+                                background:#faf8f5;transition:all .2s" id="lbl-base50">
+                        <input type="radio" name="grading_method" value="base_50" checked
+                            onchange="updateGradingLabel()">
+                        <div>
+                            <div style="font-weight:600;color:var(--text-dark)">Base 50</div>
+                            <div style="font-size:11px;color:var(--text-soft);margin-top:2px">
+                                Grade = 50 + (score ÷ total × 50)
+                            </div>
+                        </div>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;
+                                padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);
+                                background:#faf8f5;transition:all .2s" id="lbl-base20">
+                        <input type="radio" name="grading_method" value="base_20"
+                            onchange="updateGradingLabel()">
+                        <div>
+                            <div style="font-weight:600;color:var(--text-dark)">Base 20</div>
+                            <div style="font-size:11px;color:var(--text-soft);margin-top:2px">
+                                Grade = 20 + (score ÷ total × 80)
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+        {{-- ── Step 3 ─────────────────────────────────────────────────────── --}}
+        <div>
+            <div class="step-label">Step 3 — Upload PDFs</div>
             <div class="upload-grid">
                 <div class="field">
                     <div class="field-label-block">
@@ -465,6 +499,16 @@ selExamType.addEventListener('change', resolve);
     }, 0);
 })();
 @endif
+
+function updateGradingLabel() {
+    const base50 = document.querySelector('input[name="grading_method"][value="base_50"]');
+    document.getElementById('lbl-base50').style.borderColor = base50.checked ? 'var(--teal-light)' : 'var(--border)';
+    document.getElementById('lbl-base50').style.background  = base50.checked ? '#f0faf7' : '#faf8f5';
+    document.getElementById('lbl-base20').style.borderColor = base50.checked ? 'var(--border)' : 'var(--teal-light)';
+    document.getElementById('lbl-base20').style.background  = base50.checked ? '#faf8f5' : '#f0faf7';
+}
+// Run once on load to set initial highlight
+updateGradingLabel();
 
 function wireFile(inputId, areaId, labelId) {
     const input = document.getElementById(inputId);

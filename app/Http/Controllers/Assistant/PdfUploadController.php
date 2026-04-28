@@ -100,6 +100,7 @@ class PdfUploadController extends Controller
             'exam_type'          => 'required|in:prelim,midterm,prefinal,final',
             'master_list'        => 'required|file|mimes:pdf|max:10240',
             'item_matrix'        => 'nullable|file|mimes:pdf|max:10240',
+            'grading_method'     => 'required|in:base_50,base_20',
         ]);
 
         // ── Guard: reject if already fully locked ────────────────────────────
@@ -122,8 +123,7 @@ class PdfUploadController extends Controller
             ->store('temp/master_lists', 'local');
 
         $parser = new MasterListParser();
-        $rows   = $parser->parse(storage_path("app/private/{$masterPath}"));
-
+        $rows = $parser->parse(storage_path("app/private/{$masterPath}"));
         Storage::disk('local')->delete($masterPath);
 
         if (empty($rows)) {
@@ -131,31 +131,21 @@ class PdfUploadController extends Controller
                 ->with('error', 'Could not extract any student data from the PDF. Please check the file and try again.');
         }
 
-        // ── Enrich rows with DB name-match info ──────────────────────────────
-        $existingStudents = Student::whereIn(
-            'student_code',
-            collect($rows)->pluck('student_code')->filter()->unique()->values()->toArray()
-        )->get()->keyBy('student_code');
+        // ── Recalculate percentage + remark using selected grading method ────────
+        $gradingMethod = $request->grading_method;
 
         foreach ($rows as &$row) {
-            $code    = trim($row['student_code'] ?? '');
-            $pdfName = trim($row['student_name'] ?? '');
+            $score = (int)   ($row['raw_score']   ?? 0);
+            $total = (int)   ($row['total_items'] ?? 0);
 
-            if (!empty($code) && $existing = $existingStudents->get($code)) {
-                $dbName = trim($existing->student_name);
-
-                if (strtolower($dbName) !== strtolower($pdfName)) {
-                    $row['flagged']  = true;
-                    $row['db_name']  = $dbName;
-                    $row['mismatch'] = true;
-                } else {
-                    $row['db_name']  = null;
-                    $row['mismatch'] = false;
-                }
-            } else {
-                $row['db_name']  = null;
-                $row['mismatch'] = false;
+            if ($total > 0 && $score >= 0) {
+                $row['percentage'] = match($gradingMethod) {
+                    'base_20' => round(20 + ($score / $total * 80), 2),
+                    default   => round(50 + ($score / $total * 50), 2),
+                };
+                $row['remark'] = $row['percentage'] >= 75.0 ? 'pass' : 'fail';
             }
+            // If total could not be derived, keep the PDF grade as fallback
         }
         unset($row);
 
@@ -185,6 +175,7 @@ class PdfUploadController extends Controller
         $context = [
             'teacher_subject_id' => $ts->id,
             'exam_type'          => $request->exam_type,
+            'grading_method'     => $request->grading_method,
             'item_matrix_path'   => null,
             'subject_code'       => $ts->subject->subject_code,
             'subject_name'       => $ts->subject->subject_name,
@@ -214,6 +205,7 @@ class PdfUploadController extends Controller
             'students.*.raw_score'    => 'required|integer',
             'students.*.percentage'   => 'required|numeric',
             'students.*.remark'       => 'required|in:pass,fail',
+            'grading_method'          => 'required|in:base_50,base_20',
         ]);
 
         // Pull session data BEFORE the transaction
@@ -230,6 +222,7 @@ class PdfUploadController extends Controller
                 [
                     'teacher_subject_id' => $request->teacher_subject_id,
                     'exam_type'          => $request->exam_type,
+                    'grading_method'     => $request->grading_method,
                 ],
                 [
                     'item_analysis_path' => null,
@@ -242,6 +235,7 @@ class PdfUploadController extends Controller
             $updatePayload = ['uploaded_by' => $uploaderId];
             if ($matrixJson) {
                 $updatePayload['item_matrix_data'] = $matrixJson;
+                $updatePayload['grading_method'] = $request->grading_method;
             }
             $exam->update($updatePayload);
 
