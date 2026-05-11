@@ -28,53 +28,25 @@
 .btn-icon.btn-danger:disabled { opacity:.45;cursor:not-allowed; }
 
 /* ── Filter panel ─────────────────────────────────────────────────────────── */
-.filter-panel { background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;overflow: hidden; }
+.filter-panel { background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;overflow:hidden; }
 .filter-panel-title { font-size:13px;font-weight:600;color:var(--text-dark);margin-bottom:4px; }
 .filter-panel-sub { font-size:12px;color:var(--text-soft);margin-bottom:16px; }
-.filter-grid { 
-    display: grid; 
-    grid-template-columns: 1fr; 
-    gap: 16px; 
-    margin-bottom: 16px; 
-    width: 100%; 
+.filter-grid {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+    margin-bottom:16px;
+    width:100%;
 }
-
-@media (min-width: 480px) { 
-    .filter-grid { 
-        grid-template-columns: 1fr 1fr; 
-    } 
-}
-
-@media (min-width: 768px) { 
-    .filter-grid { 
-        grid-template-columns: 1fr 1fr 1fr; 
-    } 
-}
-    display: grid; 
-    grid-template-columns: 1fr 1fr 1fr; /* keep your layout */
-    gap: 16px; 
-    margin-bottom: 16px;
-    width: 100%; /* ← ensure grid respects parent width */
-}
-.filter-group { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 6px;
-    min-width: 0; /* ← allows grid children to shrink below content size */
-}
+@media (min-width:480px) { .filter-grid { grid-template-columns:1fr 1fr; } }
+@media (min-width:768px) { .filter-grid { grid-template-columns:1fr 1fr 1fr; } }
+.filter-group { display:flex;flex-direction:column;gap:6px;min-width:0; }
 .filter-group label { font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text-soft); }
-.filter-group select { 
-    padding: 9px 12px; 
-    font-family: 'DM Sans', sans-serif; 
-    font-size: 13px; 
-    background: #faf8f5; 
-    border: 1.5px solid var(--border); 
-    border-radius: 8px; 
-    color: var(--text-dark); 
-    outline: none; 
-    transition: border-color .2s;
-    width: 100%;    /* ← fill the group */
-    box-sizing: border-box; /* ← padding doesn't add to width */
+.filter-group select {
+    padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;
+    background:#faf8f5;border:1.5px solid var(--border);border-radius:8px;
+    color:var(--text-dark);outline:none;transition:border-color .2s;
+    width:100%;box-sizing:border-box;
 }
 .filter-group select:focus { border-color:var(--gold);background:var(--white); }
 .filter-actions { display:flex;align-items:center;gap:10px;padding-top:16px;border-top:1px solid var(--border); }
@@ -92,10 +64,28 @@
 .expand-btn { font-size:12px;color:var(--gold);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;padding:0; }
 
 /* ── Teacher block ────────────────────────────────────────────────────────── */
-.teacher-block { background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;transition:box-shadow .2s;animation:fadeIn .3s ease both; }
+/* KEY FIX: each teacher-block is a completely self-contained card */
+.teacher-block {
+    background:var(--white);
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;           /* clips children — keeps card tight */
+    margin-bottom:16px;        /* clear gap between cards */
+    transition:box-shadow .2s;
+    animation:fadeIn .3s ease both;
+    /* isolation: ensures stacking context doesn't bleed */
+    isolation:isolate;
+}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .teacher-block:hover { box-shadow:0 2px 14px rgba(0,0,0,.07); }
-.teacher-header { padding:16px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background .15s;flex-wrap:wrap;gap:12px;user-select:none; }
+
+.teacher-header {
+    padding:16px 22px;
+    display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;transition:background .15s;flex-wrap:wrap;gap:12px;user-select:none;
+    /* never let this stretch outside its card */
+    position:relative;z-index:1;
+}
 .teacher-header:hover { background:#faf8f5; }
 .teacher-info { display:flex;align-items:center;gap:12px; }
 .teacher-avatar { width:44px;height:44px;background:var(--navy);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:15px;color:#e8b45a;flex-shrink:0; }
@@ -106,13 +96,22 @@
 .chip { display:flex;flex-direction:column;align-items:center;padding:6px 14px;border-radius:8px;min-width:60px; }
 .chip-val   { font-family:'DM Serif Display',serif;font-size:20px;line-height:1; }
 .chip-label { font-size:10px;text-transform:uppercase;letter-spacing:.6px;margin-top:2px;opacity:.7; }
-.chip-pass{background:var(--green-bg);color:var(--green)} .chip-fail{background:var(--red-bg);color:var(--red)} .chip-rate{background:var(--amber-bg);color:var(--amber)} .chip-total{background:#f0ece3;color:var(--text-mid)}
+.chip-pass  { background:var(--green-bg);color:var(--green); }
+.chip-fail  { background:var(--red-bg);color:var(--red); }
+.chip-rate  { background:var(--amber-bg);color:var(--amber); }
+.chip-total { background:#f0ece3;color:var(--text-mid); }
 .toggle-chevron { width:20px;height:20px;color:var(--text-soft);transition:transform .25s;flex-shrink:0; }
 .toggle-chevron.open { transform:rotate(180deg); }
-.teacher-body { border-top:1px solid var(--border);display:none; }
+
+/* KEY FIX: teacher-body is a direct child block — hidden by default */
+.teacher-body {
+    border-top:1px solid var(--border);
+    display:none;
+    /* do NOT set overflow:hidden here — let inner subjects scroll */
+}
 .teacher-body.open { display:block; }
 
-/* ── Status badge (inline on teacher card) ────────────────────────────────── */
+/* ── Status badge ─────────────────────────────────────────────────────────── */
 .status-badge-wrap { display:flex;align-items:center;gap:6px; }
 .status-badge { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap; }
 .status-no_status           { background:#f0ece3;color:#8a7f72; }
@@ -120,27 +119,60 @@
 .status-needs_followup      { background:var(--amber-bg);color:var(--amber); }
 .status-intervention_active { background:var(--red-bg);color:var(--red); }
 .status-resolved            { background:#e8f0fe;color:#1a56db; }
-/* Notes icon trigger button */
+
 .btn-notes-trigger {
     display:inline-flex;align-items:center;justify-content:center;
     width:28px;height:28px;border-radius:7px;
     border:1.5px solid var(--border);background:var(--white);
-    color:var(--text-soft);cursor:pointer;transition:all .15s;
-    flex-shrink:0;
+    color:var(--text-soft);cursor:pointer;transition:all .15s;flex-shrink:0;
 }
 .btn-notes-trigger:hover { border-color:var(--navy);color:var(--navy);background:#f0f4ff; }
 .btn-notes-trigger.has-note { border-color:#b5d4f4;color:var(--blue);background:#f0f5ff; }
 .btn-notes-trigger svg { width:13px;height:13px; }
 
-/* ── Subject block ────────────────────────────────────────────────────────── */
-.subject-block { border-bottom:1px solid #f3efe8; }
-.subject-block:last-child { border-bottom:none; }
-.subject-header { padding:11px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:#fafafa;transition:background .15s;user-select:none; }
-.subject-header:hover { background:#f5f0e8; }
+/* ── Subject level (L1) inside teacher-body ──────────────────────────────── */
+/* KEY FIX: renamed classes to subject-l1-block / subject-l2-block so they
+   never share cascade rules and the toggles are scoped properly */
+.subject-l1-block {
+    border-bottom:2px solid var(--border);
+    background:var(--white);
+}
+.subject-l1-block:last-child { border-bottom:none; }
+
+.subject-l1-header {
+    padding:11px 22px;
+    display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;background:#fafafa;transition:background .15s;user-select:none;
+}
+.subject-l1-header:hover { background:#f5f0e8; }
+
+.subject-l1-body { display:none; }
+.subject-l1-body.open { display:block; }
+
+/* ── Exam-type level (L2) inside subject-l1-body ─────────────────────────── */
+.subject-l2-block {
+    border-bottom:1px solid #ece8e0;
+    background:#fdfcfa;
+}
+.subject-l2-block:last-child { border-bottom:none; }
+
+.subject-l2-header {
+    padding:10px 22px 10px 38px;
+    display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;background:#fdfcfa;transition:background .15s;user-select:none;
+}
+.subject-l2-header:hover { background:#f7f3ec; }
+
+.subject-l2-body { display:none; }
+.subject-l2-body.open { display:block; }
+
+/* shared pill/title styles */
 .subject-title-text { font-size:13px;font-weight:600;color:var(--text-dark);display:flex;align-items:center;gap:8px; }
 .subject-pills { display:flex;gap:6px;align-items:center; }
-.subject-body { display:none; }
-.subject-body.open { display:block; }
+
+/* chevrons — scoped by parent class so they don't interfere */
+.subject-l1-chevron { width:14px;height:14px;color:var(--text-soft);transition:transform .2s;flex-shrink:0; }
+.subject-l2-chevron { width:14px;height:14px;color:var(--text-soft);transition:transform .2s;flex-shrink:0; }
 
 /* uploader badge */
 .uploader-badge { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;background:#f0ece3;color:var(--text-mid);white-space:nowrap; }
@@ -165,8 +197,11 @@ table.master-tbl { width:100%;border-collapse:collapse; }
 .pct-fail { font-weight:600;color:var(--red); }
 .pct-pass { font-weight:600;color:var(--green); }
 .badge { display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px; }
-.badge-pass{background:var(--green-bg);color:var(--green)} .badge-fail{background:var(--red-bg);color:var(--red)}
-.badge-prelim{background:var(--amber-bg);color:var(--amber)} .badge-midterm{background:var(--blue-bg);color:var(--blue)} .badge-final{background:#f0ebfa;color:#534ab7}
+.badge-pass    { background:var(--green-bg);color:var(--green); }
+.badge-fail    { background:var(--red-bg);color:var(--red); }
+.badge-prelim  { background:var(--amber-bg);color:var(--amber); }
+.badge-midterm { background:var(--blue-bg);color:var(--blue); }
+.badge-final   { background:#f0ebfa;color:#534ab7; }
 .row-actions { display:flex;gap:6px;align-items:center; }
 .btn-edit-row { display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:600;background:#f0f5ff;color:var(--blue);border:1px solid #b5d4f4;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s; }
 .btn-edit-row:hover { background:#dbeafe; }
@@ -191,14 +226,20 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 .matrix-tbl .totals-row td { background:var(--navy) !important;color:rgba(255,255,255,.9) !important;font-weight:600;border-color:rgba(255,255,255,.1); }
 .matrix-tbl .totals-row td:first-child { color:rgba(255,255,255,.6) !important;font-weight:400; }
 .item-chip-sm { display:inline-block;font-size:10px;font-weight:600;padding:1px 5px;border-radius:6px;margin:1px;line-height:1.5; }
-.chip-reject{background:#fde8e8;color:#c0392b} .chip-needs-revision{background:#fff3cd;color:#856404} .chip-acceptable{background:#d4edda;color:#1a6e34}
+.chip-reject          { background:#fde8e8;color:#c0392b; }
+.chip-needs-revision  { background:#fff3cd;color:#856404; }
+.chip-acceptable      { background:#d4edda;color:#1a6e34; }
 .diff-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block; }
 .matrix-legend-row { display:flex;gap:16px;flex-wrap:wrap;padding:10px 22px;border-top:1px solid var(--border);background:#fdfcfa; }
 .legend-item { display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-mid); }
 .legend-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
-.legend-dot.reject{background:#c0392b} .legend-dot.needs-revision{background:#856404} .legend-dot.acceptable{background:#1a6e34}
-.legend-count { font-weight:700;margin-left:2px; }
-.legend-count.reject{color:#c0392b} .legend-count.needs-revision{color:#856404} .legend-count.acceptable{color:#1a6e34}
+.legend-dot.reject          { background:#c0392b; }
+.legend-dot.needs-revision  { background:#856404; }
+.legend-dot.acceptable      { background:#1a6e34; }
+.legend-count                { font-weight:700;margin-left:2px; }
+.legend-count.reject         { color:#c0392b; }
+.legend-count.needs-revision { color:#856404; }
+.legend-count.acceptable     { color:#1a6e34; }
 
 .empty-state { text-align:center;padding:60px;background:var(--white);border:1px solid var(--border);border-radius:12px; }
 .empty-state h3 { font-family:'DM Serif Display',serif;font-size:20px;color:var(--text-mid);margin-bottom:8px; }
@@ -231,7 +272,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 .btn-modal-save:hover { background:#1e3050; }
 .btn-modal-save:disabled { opacity:.6;cursor:not-allowed; }
 
-/* ── Notes card (slide-over panel) ───────────────────────────────────────── */
+/* ── Notes slide-over panel ───────────────────────────────────────────────── */
 .notes-panel-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:8500;display:flex;align-items:flex-start;justify-content:flex-end;padding:16px; }
 .notes-panel-backdrop.hidden { display:none; }
 .notes-panel {
@@ -246,15 +287,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 .notes-panel-title { font-family:'DM Serif Display',serif;font-size:17px;color:var(--text-dark); }
 .notes-panel-teacher { font-size:12px;color:var(--text-soft);margin-top:2px; }
 .notes-panel-body { padding:20px 22px;display:flex;flex-direction:column;gap:16px;flex:1; }
-.notes-section-title {
-    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
-    color:var(--text-soft);margin-bottom:6px;
-}
-/* Status: row */
-.notes-status-label {
-    display:block;font-size:22px;font-family:'DM Serif Display',serif;
-    color:var(--text-dark);margin-bottom:4px;
-}
+.notes-section-title { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);margin-bottom:6px; }
+.notes-status-label { display:block;font-size:22px;font-family:'DM Serif Display',serif;color:var(--text-dark);margin-bottom:4px; }
 .status-select-group { display:flex;flex-direction:column;gap:6px; }
 .status-option-row { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
 .status-opt {
@@ -271,11 +305,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 .status-opt.selected.s-intervention_active { background:var(--red-bg);color:var(--red);border-color:var(--red); }
 .status-opt.selected.s-resolved            { background:#e8f0fe;color:#1a56db;border-color:#1a56db; }
 .status-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0; }
-/* Notes: row */
-.notes-body-label {
-    display:block;font-size:22px;font-family:'DM Serif Display',serif;
-    color:var(--text-dark);margin-bottom:4px;
-}
+.notes-body-label { display:block;font-size:22px;font-family:'DM Serif Display',serif;color:var(--text-dark);margin-bottom:4px; }
 .notes-textarea {
     width:100%;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;
     background:#faf8f5;border:1.5px solid var(--border);border-radius:8px;
@@ -286,7 +316,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 .notes-meta { font-size:11px;color:var(--text-soft);margin-top:4px; }
 .notes-panel-footer { padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0; }
 
-/* ── Mass delete confirm modal ────────────────────────────────────────────── */
+/* ── Mass delete modal ────────────────────────────────────────────────────── */
 .mass-modal { max-width:460px; }
 .mass-modal .warning-icon { width:44px;height:44px;background:var(--red-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px; }
 .mass-modal .warning-icon svg { width:22px;height:22px;color:var(--red); }
@@ -304,9 +334,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 @media print {
     .filter-panel,.btn-icon,.expand-btn,.row-actions,.btn-delete-exam,
     .btn-notes-trigger,.status-badge-wrap { display:none !important; }
-    /* Only show status badge text in print, not the button */
     .status-badge { display:inline-flex !important; }
-    .teacher-body,.subject-body,.tab-panel { display:block !important; }
+    .teacher-body,.subject-l1-body,.subject-l2-body,.tab-panel { display:block !important; }
     .sidebar,.topbar { display:none !important; }
     .main { margin-left:0 !important; }
 }
@@ -327,19 +356,16 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
             <div class="spill spill-pass"><span class="spill-val">{{ $totalPassing }}</span><span class="spill-label">Passing</span></div>
         </div>
         <div class="header-actions">
-            {{-- Export CSV --}}
             <button class="btn-icon btn-export" id="export-btn" onclick="exportFiltered()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export CSV
             </button>
-            {{-- Mass Delete --}}
             @if(!$grouped->isEmpty())
             <button class="btn-icon btn-danger" id="mass-delete-btn" onclick="openMassDelete()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 Delete filtered
             </button>
             @endif
-            {{-- Print --}}
             <button class="btn-icon" onclick="printFiltered()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Print
@@ -451,10 +477,10 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 
         @if($hasFilters)
         <div class="active-tags">
-            @if($selectedSY)   @php $sy   = $schoolYears->find($selectedSY)  @endphp
+            @if($selectedSY)   @php $sy   = $schoolYears->find($selectedSY)   @endphp
                 @if($sy)   <span class="atag">S.Y. {{ $sy->year_start }}–{{ $sy->year_end }}</span> @endif
             @endif
-            @if($selectedSem)  @php $sem  = $semesters->find($selectedSem)   @endphp
+            @if($selectedSem)  @php $sem  = $semesters->find($selectedSem)    @endphp
                 @if($sem)  <span class="atag">{{ $sem->semester_name }} Sem</span> @endif
             @endif
             @if($selectedDept) @php $dept = $departments->find($selectedDept) @endphp
@@ -516,7 +542,12 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
     @continue
 @endif
 
+{{-- ╔══════════════════════════════════════════════════════════════════════╗
+     ║  TEACHER CARD — fully self-contained, no bleed to next card         ║
+     ╚══════════════════════════════════════════════════════════════════════╝ --}}
 <div class="teacher-block" id="teacher-block-{{ $teacherObj->id }}">
+
+    {{-- Teacher header row --}}
     <div class="teacher-header" onclick="toggleTeacher(this)">
         <div class="teacher-info">
             <div class="teacher-avatar">{{ $inits }}</div>
@@ -535,11 +566,13 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                 <button class="btn-notes-trigger {{ $teacherNote && $teacherNote->notes ? 'has-note' : '' }}"
                         id="notes-btn-{{ $teacherObj->id }}"
                         title="Teacher notes"
+                        data-notes="{{ addslashes($teacherNote?->notes ?? '') }}"
+                        data-updated-by="{{ $teacherNote?->updatedByUser?->name ?? '' }}"
+                        data-updated-at="{{ $teacherNote?->updated_at?->format('M d, Y g:i A') ?? '' }}"
                         onclick="openNotes({{ $teacherObj->id }}, '{{ addslashes($teacherName) }}', {{ $semId ?? 'null' }})">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
                 </button>
             </div>
-            {{-- Teacher stat: passing rate across all subjects/exams --}}
             <div class="stat-chips">
                 <div class="chip chip-rate"><span class="chip-val">{{ $tRate }}%</span><span class="chip-label">Pass rate</span></div>
                 <div class="chip chip-total"><span class="chip-val">{{ $tTotal }}</span><span class="chip-label">Total</span></div>
@@ -549,25 +582,27 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
         </div>
     </div>
 
+    {{-- Teacher expandable body --}}
     <div class="teacher-body">
-        {{-- Subject loop --}}
+
+        {{-- ── Subject loop (L1) ─────────────────────────────────────────── --}}
         @foreach($subjectMap as $subjectLabel => $subjectData)
         @php
-            $sPass = $subjectData['pass_count'];
-            $sFail = $subjectData['fail_count'];
+            $sPass  = $subjectData['pass_count'];
+            $sFail  = $subjectData['fail_count'];
             $sTotal = $subjectData['total_count'];
             $sRate  = $subjectData['pass_rate'];
-            $subjectTabId = 'stab-' . md5($teacherName . $subjectLabel);
         @endphp
 
-        <div class="subject-block" style="border-bottom:2px solid var(--border)">
-            <div class="subject-header" onclick="toggleSubject(this)">
+        <div class="subject-l1-block">
+
+            {{-- L1 header --}}
+            <div class="subject-l1-header" onclick="toggleL1(this)">
                 <div class="subject-title-text">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:13px;height:13px;color:var(--text-soft)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                     {{ $subjectLabel }}
                 </div>
                 <div class="subject-pills">
-                    {{-- Subject-level passing rate chip --}}
                     <span style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 10px;border-radius:7px;background:var(--amber-bg);color:var(--amber);font-size:10px;font-weight:700;min-width:48px">
                         <span style="font-family:'DM Serif Display',serif;font-size:15px;line-height:1">{{ $sRate }}%</span>
                         <span style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Pass rate</span>
@@ -576,19 +611,21 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                     @if($sFail > 0)
                     <span class="badge badge-fail" style="padding:3px 9px">{{ $sFail }} fail</span>
                     @endif
-                    <svg class="sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--text-soft);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+                    <svg class="subject-l1-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
             </div>
 
-            <div class="subject-body">
-                {{-- Exam type loop --}}
+            {{-- L1 body --}}
+            <div class="subject-l1-body">
+
+                {{-- ── Exam-type loop (L2) ──────────────────────────────── --}}
                 @foreach($subjectData['exam_types'] as $examType => $examData)
                 @php
                     $exam       = $examData['exam'];
                     $hasMatrix  = !empty($exam?->item_matrix_data);
                     $matrix     = $exam?->item_matrix_data ?? [];
                     $discCols   = $matrix['disc_columns']  ?? [];
-                    $matrixRows = $matrix['rows']          ?? [];
+                    $matrixRows = $matrix['rows']           ?? [];
                     $colTotals  = $matrix['column_totals'] ?? [];
                     $grandTotal = $matrix['grand_total']   ?? 0;
                     $legend     = $matrix['legend']        ?? [];
@@ -606,16 +643,15 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                     $etRate  = $etTotal > 0 ? round(($etPass / $etTotal) * 100) : 0;
                 @endphp
 
-                <div class="subject-block" style="background:#fdfcfa">
-                    <div class="subject-header" style="padding-left:38px" onclick="toggleSubject(this)">
+                <div class="subject-l2-block">
+
+                    {{-- L2 header --}}
+                    <div class="subject-l2-header" onclick="toggleL2(this)">
                         <div class="subject-title-text" style="gap:10px">
-                            <span style="display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px"
-                                  class="badge badge-{{ strtolower($examType) }}">
+                            <span class="badge badge-{{ strtolower($examType) }}" style="padding:2px 10px;font-size:11px;font-weight:700;letter-spacing:.4px">
                                 {{ ucfirst($examType) }}
                             </span>
-                            {{-- Grading method badge --}}
-                            <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;
-                                        background:#f0ece3;color:var(--text-mid);padding:1px 7px;border-radius:10px">
+                            <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:#f0ece3;color:var(--text-mid);padding:1px 7px;border-radius:10px">
                                 {{ $exam?->grading_method === 'base_20' ? 'Base 20' : 'Base 50' }}
                             </span>
                             @if($hasMatrix)
@@ -631,7 +667,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                             @endif
                         </div>
                         <div class="subject-pills">
-                            {{-- Exam-type stat chip --}}
                             <span style="display:inline-flex;flex-direction:column;align-items:center;padding:3px 10px;border-radius:7px;background:var(--green-bg);color:var(--green);font-size:10px;font-weight:700;min-width:48px">
                                 <span style="font-family:'DM Serif Display',serif;font-size:15px;line-height:1">{{ $etRate }}%</span>
                                 <span style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Pass rate</span>
@@ -642,16 +677,17 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                             @endif
                             @if($exam)
                             <button class="btn-delete-exam"
-                                onclick="event.stopPropagation();deleteExam({{ $exam->id }}, this.closest('.subject-block'))">
+                                onclick="event.stopPropagation();deleteExam({{ $exam->id }}, this.closest('.subject-l2-block'))">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                                 Delete exam
                             </button>
                             @endif
-                            <svg class="sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--text-soft);transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+                            <svg class="subject-l2-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
                     </div>
 
-                    <div class="subject-body">
+                    {{-- L2 body --}}
+                    <div class="subject-l2-body">
                         <div class="subject-tabs">
                             <div class="subject-tab active" onclick="switchTab(this,'{{ $tabId }}-students')">
                                 Students ({{ $etTotal }})
@@ -702,7 +738,8 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                                     </tr>
                                     @endforeach
                                 </tbody>
-                            </table>
+                                </table>
+                            </div>
                             @else
                             <div style="padding:20px 22px;font-size:13px;color:var(--text-soft)">No results recorded for this exam type yet.</div>
                             @endif
@@ -762,7 +799,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
+                                </div>
                             </div>
                             <div class="matrix-legend-row">
                                 <div class="legend-item"><span class="legend-dot reject"></span>Reject: <span class="legend-count reject">{{ count($legend['reject'] ?? []) }}</span></div>
@@ -771,14 +808,17 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                             </div>
                         </div>
                         @endif
-                    </div>
-                </div>
+
+                    </div>{{-- /subject-l2-body --}}
+                </div>{{-- /subject-l2-block --}}
                 @endforeach {{-- exam_types --}}
-            </div>
-        </div>
+
+            </div>{{-- /subject-l1-body --}}
+        </div>{{-- /subject-l1-block --}}
         @endforeach {{-- subjectMap --}}
-    </div>
-</div>
+
+    </div>{{-- /teacher-body --}}
+</div>{{-- /teacher-block --}}
 @endforeach {{-- grouped --}}
 
 @endif {{-- end $grouped->isEmpty() --}}
@@ -825,7 +865,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
             <button class="modal-close" onclick="closeNotes()">×</button>
         </div>
         <div class="notes-panel-body">
-            {{-- Status section --}}
             <div>
                 <div class="notes-section-title">Status</div>
                 <span class="notes-status-label">Status:</span>
@@ -833,38 +872,32 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                     <div class="status-option-row">
                         <label class="status-opt s-no_status" data-val="no_status">
                             <input type="radio" name="note_status" value="no_status">
-                            <span class="status-dot" style="background:#c8bfb3"></span>
-                            No Status
+                            <span class="status-dot" style="background:#c8bfb3"></span>No Status
                         </label>
                         <label class="status-opt s-on_track" data-val="on_track">
                             <input type="radio" name="note_status" value="on_track">
-                            <span class="status-dot" style="background:var(--green)"></span>
-                            On Track
+                            <span class="status-dot" style="background:var(--green)"></span>On Track
                         </label>
                     </div>
                     <div class="status-option-row">
                         <label class="status-opt s-needs_followup" data-val="needs_followup">
                             <input type="radio" name="note_status" value="needs_followup">
-                            <span class="status-dot" style="background:var(--amber)"></span>
-                            Needs Follow-up
+                            <span class="status-dot" style="background:var(--amber)"></span>Needs Follow-up
                         </label>
                         <label class="status-opt s-intervention_active" data-val="intervention_active">
                             <input type="radio" name="note_status" value="intervention_active">
-                            <span class="status-dot" style="background:var(--red)"></span>
-                            Intervention Active
+                            <span class="status-dot" style="background:var(--red)"></span>Intervention Active
                         </label>
                     </div>
                     <div class="status-option-row">
                         <label class="status-opt s-resolved" data-val="resolved">
                             <input type="radio" name="note_status" value="resolved">
-                            <span class="status-dot" style="background:#1a56db"></span>
-                            Resolved
+                            <span class="status-dot" style="background:#1a56db"></span>Resolved
                         </label>
-                        <div></div>{{-- empty cell to keep grid --}}
+                        <div></div>
                     </div>
                 </div>
             </div>
-            {{-- Notes section --}}
             <div>
                 <div class="notes-section-title">Notes</div>
                 <span class="notes-body-label">Notes:</span>
@@ -911,8 +944,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
         </div>
         <div class="modal-footer">
             <button class="btn-modal-cancel" onclick="closeMassModal()">Cancel</button>
-            <button class="btn-modal-delete" id="confirm-mass-delete-btn"
-                    onclick="confirmMassDelete()" disabled>
+            <button class="btn-modal-delete" id="confirm-mass-delete-btn" onclick="confirmMassDelete()" disabled>
                 Yes, delete all
             </button>
         </div>
@@ -925,7 +957,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 <script>
 const CSRF = '{{ csrf_token() }}';
 let editingGradingMethod = 'base_50';
-// ── Current filter state (passed to export / mass-delete) ─────────────────
+
 const FILTERS = {
     school_year_id: '{{ $selectedSY ?? '' }}',
     semester_id:    '{{ $selectedSem ?? '' }}',
@@ -936,25 +968,41 @@ const FILTERS = {
 };
 
 // ── Accordion helpers ─────────────────────────────────────────────────────
+// KEY FIX: each toggle function only touches its own direct child body
+// and its own scoped chevron class — no shared .sub-chevron selector.
+
 function toggleTeacher(header) {
-    const body = header.nextElementSibling;
+    const body = header.nextElementSibling;  // always .teacher-body
     const chev = header.querySelector('.toggle-chevron');
-    body.classList.toggle('open');
-    chev.classList.toggle('open');
+    const isOpen = body.classList.toggle('open');
+    chev.classList.toggle('open', isOpen);
 }
-function toggleSubject(header) {
+
+function toggleL1(header) {
+    // header is .subject-l1-header; next sibling is .subject-l1-body
     const body = header.nextElementSibling;
-    const chev = header.querySelector('.sub-chevron');
-    body.classList.toggle('open');
-    chev.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+    const chev = header.querySelector('.subject-l1-chevron');
+    const isOpen = body.classList.toggle('open');
+    if (chev) chev.style.transform = isOpen ? 'rotate(180deg)' : '';
 }
+
+function toggleL2(header) {
+    // header is .subject-l2-header; next sibling is .subject-l2-body
+    const body = header.nextElementSibling;
+    const chev = header.querySelector('.subject-l2-chevron');
+    const isOpen = body.classList.toggle('open');
+    if (chev) chev.style.transform = isOpen ? 'rotate(180deg)' : '';
+}
+
 function switchTab(tab, panelId) {
-    const subject = tab.closest('.subject-body');
-    subject.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
-    subject.querySelectorAll('.tab-panel').forEach(p  => p.classList.remove('active'));
+    // Scope to the nearest subject-l2-body so sibling tabs don't interfere
+    const container = tab.closest('.subject-l2-body');
+    container.querySelectorAll('.subject-tab').forEach(t => t.classList.remove('active'));
+    container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(panelId).classList.add('active');
 }
+
 function expandAll() {
     const btn     = document.getElementById('expand-all-btn');
     const bodies  = document.querySelectorAll('.teacher-body');
@@ -1062,39 +1110,25 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
 let notesTeacherId  = null;
 let notesSemesterId = null;
 
-const STATUS_LABELS = {
-    no_status:           'No Status',
-    on_track:            'On Track',
-    needs_followup:      'Needs Follow-up',
-    intervention_active: 'Intervention Active',
-    resolved:            'Resolved',
-};
-
 function openNotes(teacherId, teacherName, semesterId) {
     notesTeacherId  = teacherId;
     notesSemesterId = semesterId;
 
     document.getElementById('notes-panel-teacher-name').textContent = teacherName;
 
-    // Load existing data from the DOM badge
     const badgeEl = document.getElementById(`status-badge-${teacherId}`);
     const classes = badgeEl?.className.split(' ') ?? [];
     const statusClass = classes.find(c => c.startsWith('status-') && c !== 'status-badge');
     const currentStatus = statusClass ? statusClass.replace('status-', '') : 'no_status';
     setSelectedStatus(currentStatus);
 
-    // Load notes from a data attribute we'll set on the btn
     const btn = document.getElementById(`notes-btn-${teacherId}`);
-    const existingNotes = btn?.dataset.notes ?? '';
-    const updatedBy     = btn?.dataset.updatedBy ?? '';
-    const updatedAt     = btn?.dataset.updatedAt ?? '';
-
-    document.getElementById('notes-textarea').value = existingNotes;
+    document.getElementById('notes-textarea').value = btn?.dataset.notes ?? '';
 
     const metaEl = document.getElementById('notes-meta');
-    metaEl.textContent = updatedAt
-        ? `Last updated by ${updatedBy} on ${updatedAt}`
-        : '';
+    const updatedAt = btn?.dataset.updatedAt ?? '';
+    const updatedBy = btn?.dataset.updatedBy ?? '';
+    metaEl.textContent = updatedAt ? `Last updated by ${updatedBy} on ${updatedAt}` : '';
 
     document.getElementById('notes-panel-backdrop').classList.remove('hidden');
 }
@@ -1112,7 +1146,6 @@ function setSelectedStatus(val) {
     });
 }
 
-// Wire status options
 document.querySelectorAll('.status-opt').forEach(opt => {
     opt.addEventListener('click', () => setSelectedStatus(opt.dataset.val));
 });
@@ -1120,8 +1153,7 @@ document.querySelectorAll('.status-opt').forEach(opt => {
 async function saveNote() {
     const status = document.querySelector('.status-opt.selected')?.dataset.val ?? 'no_status';
     const notes  = document.getElementById('notes-textarea').value;
-
-    const btn = document.getElementById('notes-save-btn');
+    const btn    = document.getElementById('notes-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
 
     try {
@@ -1135,10 +1167,9 @@ async function saveNote() {
         if (data.success) {
             const badgeEl = document.getElementById(`status-badge-${notesTeacherId}`);
             if (badgeEl) {
-                badgeEl.className = `status-badge status-${data.status}`;
+                badgeEl.className   = `status-badge status-${data.status}`;
                 badgeEl.textContent = data.status_label;
             }
-
             const notesBtn = document.getElementById(`notes-btn-${notesTeacherId}`);
             if (notesBtn) {
                 notesBtn.dataset.notes     = data.notes ?? '';
@@ -1146,7 +1177,6 @@ async function saveNote() {
                 notesBtn.dataset.updatedAt = data.updated_at ?? '';
                 notesBtn.classList.toggle('has-note', !!(data.notes));
             }
-
             closeNotes();
         }
     } finally {
@@ -1154,22 +1184,15 @@ async function saveNote() {
     }
 }
 
-// Pre-load existing note data into button data attributes from Blade
-// (done inline per teacher block below via a script tag generated in Blade)
-
-// ── Export filtered ───────────────────────────────────────────────────────
+// ── Export / Print / Mass delete ──────────────────────────────────────────
 function exportFiltered() {
     const params = new URLSearchParams();
     Object.entries(FILTERS).forEach(([k, v]) => { if (v) params.set(k, v); });
     window.location = '/admin/interventions/export?' + params.toString();
 }
 
-// ── Print filtered (print current view — filters already applied server-side)
-function printFiltered() {
-    window.print();
-}
+function printFiltered() { window.print(); }
 
-// ── Mass delete ───────────────────────────────────────────────────────────
 let exportDone = false;
 
 function openMassDelete() {
@@ -1177,7 +1200,6 @@ function openMassDelete() {
     document.getElementById('confirm-mass-delete-btn').disabled = true;
     document.getElementById('export-confirmed').classList.add('hidden');
 
-    // Build summary text from filter tags
     const tags  = document.querySelectorAll('.atag');
     const label = tags.length
         ? Array.from(tags).map(t => t.textContent.trim()).join(', ')
@@ -1188,9 +1210,7 @@ function openMassDelete() {
     document.getElementById('mass-modal').classList.remove('hidden');
 }
 
-function closeMassModal() {
-    document.getElementById('mass-modal').classList.add('hidden');
-}
+function closeMassModal() { document.getElementById('mass-modal').classList.add('hidden'); }
 
 function exportThenConfirm() {
     exportFiltered();
@@ -1202,7 +1222,6 @@ function exportThenConfirm() {
 async function confirmMassDelete() {
     const btn = document.getElementById('confirm-mass-delete-btn');
     btn.disabled = true; btn.textContent = 'Deleting…';
-
     try {
         const res  = await fetch('/admin/interventions/mass-delete', {
             method: 'DELETE',
@@ -1210,14 +1229,8 @@ async function confirmMassDelete() {
             body: JSON.stringify(FILTERS)
         });
         const data = await res.json();
-
-        if (data.success) {
-            closeMassModal();
-            // Reload the page to reflect deletion
-            window.location.reload();
-        } else {
-            alert('Delete failed: ' + (data.message ?? 'Unknown error'));
-        }
+        if (data.success) { closeMassModal(); window.location.reload(); }
+        else alert('Delete failed: ' + (data.message ?? 'Unknown error'));
     } finally {
         btn.disabled = false; btn.textContent = 'Yes, delete all';
     }
@@ -1237,7 +1250,6 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
     const teacher = document.getElementById('f-teacher');
     if (!sy) return;
 
-    // Snapshot all options once on load
     const allOpts = {};
     [sy, sem, dept, cat, subj, teacher].forEach(sel => {
         allOpts[sel.id] = Array.from(sel.options)
@@ -1245,7 +1257,7 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
             .map(o => ({
                 node:    o.cloneNode(true),
                 value:   o.value,
-                dataset: Object.assign({}, o.dataset)  // plain object copy
+                dataset: Object.assign({}, o.dataset)
             }));
     });
 
@@ -1262,14 +1274,9 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
         select.value = found ? current : '';
     }
 
-    // Semester: filter by school year
     function filterSem() {
-        rebuild(sem, ({ dataset }) =>
-            !sy.value || dataset.sy === sy.value
-        );
+        rebuild(sem, ({ dataset }) => !sy.value || dataset.sy === sy.value);
     }
-
-    // Subject: filter by dept AND category — trim both sides to avoid whitespace mismatches
     function filterSubject() {
         rebuild(subj, ({ dataset }) => {
             const deptOk = !dept.value || String(dataset.dept || '').trim() === String(dept.value).trim();
@@ -1277,32 +1284,23 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
             return deptOk && catOk;
         });
     }
-
-    // Teacher: filter by active semester AND dept
     function filterTeacher() {
         rebuild(teacher, ({ dataset }) => {
             const deptOk = !dept.value || String(dataset.dept || '').split(',')
                 .map(s => s.trim())
                 .includes(String(dept.value).trim());
-            return deptOk; // ← removed semOk entirely
+            return deptOk;
         });
     }
 
-    // Wire up change events
     sy.addEventListener('change',   () => { filterSem(); filterTeacher(); });
     sem.addEventListener('change',  () => { filterTeacher(); });
     dept.addEventListener('change', () => { filterSubject(); filterTeacher(); });
     cat.addEventListener('change',  () => { filterSubject(); });
 
-    // Run on page load if filters are pre-selected
-
-    if (sy.value)                                filterSem();
-    if (sem.value || dept.value || sem.options[sem.selectedIndex]?.value) filterTeacher();
-    if (dept.value || cat.value)                 filterSubject();
-    // Explicitly trigger teacher filter even when sem appears blank
+    if (sy.value)                    filterSem();
+    if (dept.value || cat.value)     filterSubject();
     filterTeacher();
 })();
-
 </script>
-
 @endpush
