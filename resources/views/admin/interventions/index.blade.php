@@ -429,7 +429,6 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                     @foreach($teachers as $teacher)
                     <option value="{{ $teacher->id }}"
                         data-dept="{{ implode(',', $teacher->teacherSubjects->pluck('subject.department_id')->unique()->filter()->values()->toArray()) }}"
-                        data-sem="{{ implode(',', $teacher->teacherSubjects->pluck('semester_id')->unique()->filter()->values()->toArray()) }}"
                         {{ $selectedTeacher == $teacher->id ? 'selected' : '' }}>
                         {{ $teacher->teacher_name }}
                     </option>
@@ -1282,9 +1281,10 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
     // Teacher: filter by active semester AND dept
     function filterTeacher() {
         rebuild(teacher, ({ dataset }) => {
-            const semOk  = !sem.value  || String(dataset.sem  || '').split(',').map(s => s.trim()).includes(String(sem.value).trim());
-            const deptOk = !dept.value || String(dataset.dept || '').split(',').map(s => s.trim()).includes(String(dept.value).trim());
-            return semOk && deptOk;
+            const deptOk = !dept.value || String(dataset.dept || '').split(',')
+                .map(s => s.trim())
+                .includes(String(dept.value).trim());
+            return deptOk; // ← removed semOk entirely
         });
     }
 
