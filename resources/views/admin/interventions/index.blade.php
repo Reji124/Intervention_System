@@ -498,19 +498,19 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 
 @foreach($grouped as $teacherName => $subjectMap)
 @php
-    // Teacher-level stats: sum across all subjects and exam types
     $tPass  = $subjectMap->sum('pass_count');
     $tFail  = $subjectMap->sum('fail_count');
     $tTotal = $subjectMap->sum('total_count');
     $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
 
     $firstSubjectData = $subjectMap->first();
-    $teacherObj = $firstSubjectData['teacher'];
+    $teacherObj  = $firstSubjectData['teacher'] ?? null;
+    if (!$teacherObj) continue;  // ← skip and don't crash
+
     $teacherNote = $firstSubjectData['teacher_note'];
     $noteStatus  = $teacherNote?->status ?? 'no_status';
     $noteLabels  = \App\Models\TeacherNote::STATUSES;
     $semId       = $selectedSem ?? $activeSemester?->id;
-
     $inits = collect(explode(' ', $teacherName))
                ->map(fn($w) => strtoupper(substr($w, 0, 1)))
                ->take(2)->implode('');
@@ -1305,14 +1305,13 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
 
 </script>
 
-{{-- Pre-load existing note data into each notes button --}}
 @foreach($grouped as $teacherName => $subjectMap)
 @php
-    $firstData   = $subjectMap->first();
-    $tObj        = $firstData['teacher_subject']->teacher;
-    $tNote       = $firstData['teacher_note'];
+    $firstData = $subjectMap->first();
+    $tObj      = $firstData['teacher'] ?? $firstData['teacher_subject']->teacher ?? null;
+    $tNote     = $firstData['teacher_note'];
 @endphp
-@if($tNote)
+@if($tNote && $tObj)
 <script>
 (function() {
     const btn = document.getElementById('notes-btn-{{ $tObj->id }}');
