@@ -499,8 +499,11 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 @foreach($grouped as $teacherName => $subjectMap)
 @php
     $firstSubjectData = $subjectMap->first();
-    $teacherObj  = $firstSubjectData['teacher_subject']->teacher;
-    if (!$teacherObj) continue;
+    $teacherObj  = $firstSubjectData['teacher'] ?? $firstSubjectData['teacher_subject']?->teacher;
+    if (!$teacherObj) {
+        \Log::warning('Teacher object null for: ' . $teacherName);
+        continue;
+    }
 
     $teacherNote = $firstSubjectData['teacher_note'];
     $noteStatus  = $teacherNote?->status ?? 'no_status';
