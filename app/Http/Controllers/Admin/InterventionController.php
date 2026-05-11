@@ -49,13 +49,14 @@ class InterventionController extends Controller
             $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
             $departments = Department::orderBy('department_name')->get();
             $subjects    = Subject::orderBy('subject_code')->get();
-            $teachers    = Teacher::with([
-                               'teacherSubjects.subject',
-                               'teacherSubjects.semester',
-                               'notes',
-                           ])
-                           ->orderBy('teacher_name')
-                           ->get();
+            $teachers = Teacher::with([
+                'teacherSubjects.subject',
+                'teacherSubjects.semester',
+                'notes',
+            ])
+            ->whereHas('teacherSubjects.exams.examResults') // ← only teachers with uploaded results
+            ->orderBy('teacher_name')
+            ->get();
 
             $categories = DB::table('subjects')
                             ->select(DB::raw('DISTINCT category'))
