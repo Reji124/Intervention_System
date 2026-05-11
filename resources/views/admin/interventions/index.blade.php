@@ -505,7 +505,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
     $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
 
     $firstSubjectData = $subjectMap->first();
-    $teacherObj  = $firstSubjectData['teacher_subject']->teacher;
+    $teacherObj = $firstSubjectData['teacher'];
     $teacherNote = $firstSubjectData['teacher_note'];
     $noteStatus  = $teacherNote?->status ?? 'no_status';
     $noteLabels  = \App\Models\TeacherNote::STATUSES;
