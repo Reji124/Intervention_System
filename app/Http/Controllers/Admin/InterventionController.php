@@ -135,7 +135,11 @@ class InterventionController extends Controller
             // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
                 ->filter(fn($ts) => $ts->teacher && $ts->subject)
-                ->groupBy(fn($ts) => $ts->teacher->teacher_name)
+                ->groupBy(fn($ts) => $ts->teacher->id)
+                ->mapWithKeys(function ($group, $teacherId) {
+                    $teacherName = $group->first()->teacher->teacher_name;
+                    return [$teacherName => $group];
+                })
                 ->map(function ($teacherTSList) use ($teacherNotes) {
                     $teacher     = $teacherTSList->first()->teacher;  // resolved once here
                     $teacherNote = $teacherNotes->get($teacher->id);
