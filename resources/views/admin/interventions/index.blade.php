@@ -498,19 +498,20 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 
 @foreach($grouped as $teacherName => $subjectMap)
 @php
-    $tPass  = $subjectMap->sum('pass_count');
-    $tFail  = $subjectMap->sum('fail_count');
-    $tTotal = $subjectMap->sum('total_count');
-    $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
-
     $firstSubjectData = $subjectMap->first();
-    $teacherObj  = $firstSubjectData['teacher'] ?? null;
-    if (!$teacherObj) continue;  // ← skip and don't crash
+    $teacherObj  = $firstSubjectData['teacher_subject']->teacher;
+    if (!$teacherObj) continue;
 
     $teacherNote = $firstSubjectData['teacher_note'];
     $noteStatus  = $teacherNote?->status ?? 'no_status';
     $noteLabels  = \App\Models\TeacherNote::STATUSES;
     $semId       = $selectedSem ?? $activeSemester?->id;
+    
+    $tPass  = $subjectMap->sum('pass_count');
+    $tFail  = $subjectMap->sum('fail_count');
+    $tTotal = $subjectMap->sum('total_count');
+    $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
+    
     $inits = collect(explode(' ', $teacherName))
                ->map(fn($w) => strtoupper(substr($w, 0, 1)))
                ->take(2)->implode('');
@@ -1304,15 +1305,5 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
 })();
 
 </script>
-
-@foreach($grouped as $teacherName => $subjectMap)
-    @php $firstSubjectData = $subjectMap->first(); @endphp
-    <div>
-        {{ $loop->index }} - 
-        {{ $teacherName }} - 
-        {{ $firstSubjectData['teacher']->id ?? 'NULL TEACHER' }} -
-        {{ $firstSubjectData['teacher_subject']->id ?? 'NULL TS' }}
-    </div>
-@endforeach
 
 @endpush

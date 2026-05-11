@@ -135,20 +135,15 @@ class InterventionController extends Controller
             // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
                 ->filter(fn($ts) => $ts->teacher && $ts->subject)
-                ->groupBy(fn($ts) => $ts->teacher->id)
-                ->mapWithKeys(function ($group, $teacherId) {
-                    $teacherName = $group->first()->teacher->teacher_name;
-                    return [$teacherName => $group];
-                })
-                ->map(function ($teacherTSList) use ($teacherNotes) {
-                    $teacher     = $teacherTSList->first()->teacher;  // resolved once here
-                    $teacherNote = $teacherNotes->get($teacher->id);
-
-                    return $teacherTSList->groupBy(function ($ts) {
+                ->groupBy(fn($ts) => $ts->teacher->teacher_name)
+                ->map(fn($teacherTSList) =>
+                    $teacherTSList->groupBy(function ($ts) {
                         return $ts->subject->subject_code
                             . ' — ' . $ts->subject->subject_name
                             . ($ts->section ? ' (' . $ts->section . ')' : '');
-                    })->map(function ($subjectTSList) use ($teacherNote, $teacher) {  // ← add $teacher
+                    })->map(function ($subjectTSList) use ($teacherNotes) {
+                        $teacher = $subjectTSList->first()->teacher;
+                        $teacherNote = $teacherNotes->get($teacher->id);
 
                         $allSubjectResults = $subjectTSList->flatMap(
                             fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
@@ -159,8 +154,8 @@ class InterventionController extends Controller
                             ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {
                                 $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
                                 $failingResults = $allResults->where('remark', 'fail')
-                                                            ->sortBy('percentage')
-                                                            ->values();
+                                                                ->sortBy('percentage')
+                                                                ->values();
                                 $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
                                 $anyExam        = $examsOfType->first();
 
@@ -170,7 +165,7 @@ class InterventionController extends Controller
                                     'all_results'     => $allResults,
                                     'failing_results' => $failingResults,
                                     'pass_count'      => $allResults->where('remark', 'pass')->count(),
-                                    'fail_count'      => $failingResults->count(),
+                                    'fail_count'      => $allResults->where('remark', 'fail')->count(),
                                     'total_count'     => $allResults->count(),
                                     'exam'            => $examWithMatrix ?? $anyExam,
                                 ];
@@ -188,8 +183,8 @@ class InterventionController extends Controller
                             'teacher_subject' => $subjectTSList->first(),
                             'teacher'         => $teacher,  // ← pass teacher directly
                         ];
-                    });
-                });
+                    })
+                );
 
             $examIds      = $teacherSubjects->flatMap(fn($ts) => $ts->exams->pluck('id'));
             $totalFailing = $examIds->isNotEmpty()
