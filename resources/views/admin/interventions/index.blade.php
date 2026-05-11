@@ -1306,7 +1306,13 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
 </script>
 
 @foreach($grouped as $teacherName => $subjectMap)
-<div>{{ $teacherName }}</div>
+    @php $firstSubjectData = $subjectMap->first(); @endphp
+    <div>
+        {{ $loop->index }} - 
+        {{ $teacherName }} - 
+        {{ $firstSubjectData['teacher']->id ?? 'NULL TEACHER' }} -
+        {{ $firstSubjectData['teacher_subject']->id ?? 'NULL TS' }}
+    </div>
 @endforeach
 
 @endpush
