@@ -337,6 +337,7 @@
 
                         <div class="subj-body"> {{-- no 'open' class = hidden by default --}}
                             @if($subject->courses->isNotEmpty())
+                                <div class="card-table">
                                 <table>
                                     <thead>
                                         <tr>
@@ -353,6 +354,7 @@
                                         @endforeach
                                     </tbody>
                                 </table>
+                                </div>
                             @else
                                 <div class="empty-row">No courses assigned to this subject.</div>
                             @endif

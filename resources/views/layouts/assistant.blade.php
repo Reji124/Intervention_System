@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         :root {
             --navy:#0f1c2e; --navy-line:rgba(255,255,255,.07);
             --teal:#0f6e56; --teal-light:#1d9e75; --teal-dim:rgba(29,158,117,.12);
@@ -23,9 +24,33 @@
         }
         html, body { height:100%; font-family:'DM Sans',sans-serif; background:var(--page-bg); color:var(--text-dark); }
 
-        .sidebar { position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); background:var(--navy); display:flex; flex-direction:column; z-index:100; overflow:hidden; }
-        .sidebar::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(29,158,117,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(29,158,117,.05) 1px,transparent 1px); background-size:36px 36px; pointer-events:none; }
-        .sidebar::after { content:''; position:absolute; bottom:-80px; right:-80px; width:260px; height:260px; border-radius:50%; border:1px solid rgba(29,158,117,.15); pointer-events:none; }
+        /* ── SIDEBAR ───────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-w);
+            background: var(--navy);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        .sidebar::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:linear-gradient(rgba(29,158,117,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(29,158,117,.05) 1px,transparent 1px);
+            background-size:36px 36px;
+            pointer-events:none;
+        }
+        .sidebar::after {
+            content: '';
+            position: absolute; bottom:-80px; right:-80px;
+            width:260px; height:260px; border-radius:50%;
+            border:1px solid rgba(29,158,117,.15);
+            pointer-events:none;
+        }
         .sb-header { padding:28px 24px 20px; border-bottom:1px solid var(--navy-line); position:relative; z-index:1; }
         .brand-row { display:flex; align-items:center; gap:10px; }
         .brand-icon { width:34px; height:34px; background:var(--teal-light); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -49,8 +74,12 @@
         .logout-btn:hover { color:rgba(255,255,255,.7); }
         .logout-btn svg { width:14px; height:14px; }
 
-        .main { margin-left:var(--sidebar-w); min-height:100vh; display:flex; flex-direction:column; }
-        .topbar { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:50; }
+        .main { min-height:100vh; display:flex; flex-direction:column; }
+        .main { margin-left: 0; }
+        @media (min-width: 640px) {
+            .main { margin-left: var(--sidebar-w); }
+        }
+        .topbar { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:60px; display:flex; align-items:center; gap:16px; position:sticky; top=0; z-index:50; }
         .topbar-title { font-family:'DM Serif Display',serif; font-size:18px; color:var(--text-dark); flex:1; }
         .topbar-meta { font-size:12px; color:var(--text-soft); }
         .topbar-sy { background:var(--navy); color:#5dcaa5; font-size:11px; font-weight:500; padding:4px 10px; border-radius:20px; }
@@ -60,11 +89,88 @@
         .alert-error   { background:var(--red-bg);   border:1px solid #f5c6c6; border-left:3px solid var(--red);   color:var(--red); }
         .alert-success { background:var(--green-bg); border:1px solid #b7dfc5; border-left:3px solid var(--green); color:var(--green); }
         .alert svg { flex-shrink:0; width:16px; height:16px; margin-top:1px; }
+
+        /* ── SCROLLING UTILITIES ───────────────────────────── */
+        .overflow-x-auto { overflow-x: auto; }
+        .overflow-y-auto { overflow-y: auto; }
+        .scroll-smooth { scroll-behavior: smooth; }
+        /* Enable momentum scrolling for iOS */
+        .overflow-touch {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* ── MOBILE RESPONSIVE ADJUSTMENTS ────────────────── */
+        @media (max-width: 640px) {
+            html, body { 
+                overflow-x: auto;
+                width: 100%;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .main { 
+                margin-left: 0 !important;
+                width: 100%;
+            }
+            
+            .content {
+                padding: 16px;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Tables become horizontally scrollable */
+            .card-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            table {
+                min-width: 100%;
+                width: auto;
+            }
+            
+            .topbar {
+                padding: 0 16px;
+                height: auto;
+                min-height: 60px;
+                flex-wrap: wrap;
+            }
+            
+            .topbar-title {
+                font-size: 16px;
+            }
+            
+            /* Forms should be full width */
+            .form-card {
+                max-width: 100%;
+                padding: 16px;
+            }
+            
+            /* Ensure all content fits within viewport width */
+            .card {
+                width: 100%;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .content {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
     </style>
     @stack('styles')
 </head>
-<body>
-<aside class="sidebar">
+<body x-data="{ sidebarOpen: window.matchMedia('(min-width: 640px)').matches }">
+<aside
+    class="sidebar fixed left-0 top-0 bottom-0 z-50 w-64 bg-navy transition-transform duration-300 ease-in-out"
+    :class="{ '-translate-x-full': !sidebarOpen }"
+    x-ref="sidebar"
+>
     <div class="sb-header">
         <div class="brand-row">
             <div class="brand-icon">
@@ -76,15 +182,15 @@
             </div>
         </div>
     </div>
-    <nav class="sb-nav">
+    <nav class="sb-nav overflow-touch">
         <div class="nav-sec">Overview</div>
         <a href="{{ route('assistant.dashboard') }}" class="nav-item {{ request()->routeIs('assistant.dashboard') ? 'active' : '' }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="3" width="7" height="7" rx="1"/></svg>
             Dashboard
         </a>
         <div class="nav-sec">Exam Results</div>
         <a href="{{ route('assistant.upload.index') }}" class="nav-item {{ request()->routeIs('assistant.upload*') ? 'active' : '' }}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload PDF
         </a>
         <a href="{{ route('assistant.subjects.index') }}" class="nav-item {{ request()->routeIs('assistant.subjects*') ? 'active' : '' }}">
@@ -120,15 +226,26 @@
         </div>
     </div>
 </aside>
-<div class="main">
+<div class="main overflow-touch">
     <header class="topbar">
+        <button
+          @click="sidebarOpen = ! sidebarOpen"
+          class="p-2 mr-3 text-gray-500 hover:text-gray-700 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out hidden sm:block"
+          aria-label="Toggle sidebar"
+        >
+          <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+            <path :class="{'hidden': sidebarOpen, 'inline-flex': ! sidebarOpen }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            <path :class="{'hidden': ! sidebarOpen, 'inline-flex': sidebarOpen }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         <span class="topbar-title">@yield('page-title', 'Dashboard')</span>
         <span class="topbar-meta">{{ now()->format('l, F j, Y') }}</span>
         @if(isset($activeSemester))
             <span class="topbar-sy">S.Y. {{ $activeSemester->schoolYear->year_start }}–{{ $activeSemester->schoolYear->year_end }} · {{ $activeSemester->semester_name }}</span>
         @endif
     </header>
-    <div class="content">
+    <div class="content overflow-touch">
         @if(session('success'))
             <div class="alert alert-success">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -145,5 +262,41 @@
     </div>
 </div>
 @stack('scripts')
+<script>
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('[x-ref="sidebar"]');
+        const hamburger = document.querySelector('[aria-label="Toggle sidebar"]');
+        const isClickInsideSidebar = sidebar.contains(event.target);
+        const isClickOnHamburger = hamburger.contains(event.target);
+
+        // Close sidebar if clicked outside and we're on mobile
+        if (!isClickInsideSidebar && !isClickOnHamburger && window.innerWidth < 640) {
+            // Use Alpine.js to close sidebar
+            if (window.Alpine) {
+                Alpine.store('sidebarOpen', false);
+            } else {
+                // Fallback if Alpine isn't available yet
+                const body = document.body;
+                body.setAttribute('x-data', body.getAttribute('x-data').replace('sidebarOpen: true', 'sidebarOpen: false'));
+            }
+        }
+    });
+
+    // Also close sidebar when clicking on navigation links (mobile only)
+    document.querySelectorAll('.nav-item').forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth < 640) {
+                // Use Alpine.js to close sidebar
+                if (window.Alpine) {
+                    Alpine.store('sidebarOpen', false);
+                } else {
+                    // Fallback if Alpine isn't available yet
+                    const body = document.body;
+                    body.setAttribute('x-data', body.getAttribute('x-data').replace('sidebarOpen: true', 'sidebarOpen: false'));
+                }
+            }
+        });
+    });
+</script>
 </body>
 </html>

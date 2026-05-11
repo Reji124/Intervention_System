@@ -80,6 +80,7 @@
             {{ $teacher->teacherSubjects->count() }} total
         </span>
     </div>
+    <div class="card-table">
     <table>
         <thead>
             <tr>
@@ -123,5 +124,6 @@
         @endforelse
         </tbody>
     </table>
+    </div>
 </div>
 @endsection

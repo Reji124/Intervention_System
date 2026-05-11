@@ -6,7 +6,24 @@
 @push('styles')
 <style>
     /* ── Stat cards ─────────────────────────────────────────────────────────── */
-    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+    .stats-grid { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 16px; 
+    margin-bottom: 28px; 
+}
+
+@media (min-width: 480px) { 
+    .stats-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+    } 
+}
+
+@media (min-width: 768px) { 
+    .stats-grid { 
+        grid-template-columns: repeat(4, 1fr); 
+    } 
+}
     .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:20px 22px; position:relative; overflow:hidden; animation:slideUp .4s ease both; }
     .stat-card:nth-child(1){animation-delay:.05s} .stat-card:nth-child(2){animation-delay:.10s}
     .stat-card:nth-child(3){animation-delay:.15s} .stat-card:nth-child(4){animation-delay:.20s}
@@ -28,7 +45,18 @@
     .stat-label { font-size:12px; color:var(--text-soft); }
 
     /* ── Layout ─────────────────────────────────────────────────────────────── */
-    .main-grid { display:grid; grid-template-columns:1fr 320px; gap:20px; margin-bottom:20px; }
+    .main-grid { 
+        display:grid; 
+        grid-template-columns:1fr 320px; 
+        gap:20px; 
+        margin-bottom:20px; 
+    }
+    
+    @media (max-width: 1024px) {
+        .main-grid {
+            grid-template-columns: 1fr;
+        }
+    }
     .full-width { margin-bottom:20px; }
     .card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; overflow:hidden; animation:slideUp .4s ease .2s both; }
     .card-header { padding:18px 22px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -57,6 +85,11 @@
     .filter-pill a:hover { opacity:1; }
 
     /* ── Teacher performance table ──────────────────────────────────────────── */
+    .card-table {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
     table { width:100%; border-collapse:collapse; }
     thead th { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--text-soft); padding:10px 18px; text-align:left; background:#faf8f5; border-bottom:1px solid var(--border); }
     tbody td { padding:11px 18px; font-size:13px; border-bottom:1px solid #f3efe8; color:var(--text-mid); vertical-align:middle; }
@@ -81,9 +114,35 @@
     .ok-badge   { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; background:var(--green-bg); color:var(--green); }
 
     /* ── Exam type breakdown ────────────────────────────────────────────────── */
-    .breakdown-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
+    .breakdown-grid { 
+        display:grid; 
+        grid-template-columns:repeat(4,1fr); 
+        gap:0; 
+    }
+    
+    @media (max-width: 1024px) {
+        .breakdown-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 640px) {
+        .breakdown-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
     .breakdown-item { padding:20px 22px; border-right:1px solid var(--border); }
     .breakdown-item:last-child { border-right:none; }
+    @media (max-width: 640px) {
+        .breakdown-item {
+            border-right: none;
+            border-bottom: 1px solid var(--border);
+        }
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+    }
     .breakdown-type { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--text-soft); margin-bottom:12px; }
     .breakdown-pass-rate { font-family:'DM Serif Display',serif; font-size:28px; color:var(--text-dark); margin-bottom:6px; }
     .breakdown-bar { height:6px; border-radius:99px; background:#eee; overflow:hidden; margin-bottom:8px; }
@@ -103,7 +162,18 @@
     .risk-rate { font-size:12px; font-weight:700; color:var(--red); white-space:nowrap; }
 
     /* ── Quick actions ──────────────────────────────────────────────────────── */
-    .quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:16px; }
+    .quick-grid { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 10px; 
+    padding: 16px; 
+}
+
+@media (min-width: 768px) { 
+    .quick-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+    } 
+}
     .quick-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px 10px; border-radius:10px; background:#faf8f5; border:1px solid var(--border); font-size:12px; font-weight:500; color:var(--text-mid); text-decoration:none; transition:all .15s; text-align:center; }
     .quick-btn:hover { background:var(--navy); color:#fff; border-color:var(--navy); }
     .quick-btn svg { width:20px; height:20px; }
@@ -249,6 +319,7 @@
             <a href="{{ route('admin.interventions.index') }}" class="card-action">Full report →</a>
         </div>
 
+        <div class="card-table">
         <table>
             <thead>
                 <tr>
@@ -303,6 +374,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 
     {{-- Right column --}}

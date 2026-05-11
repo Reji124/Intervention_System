@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* === RESPONSIVE FOUNDATION === */
+
+/* Container System */
+.container-sm {
+  width: 100%;
+  padding-right: var(--tw-space-x-reverse, 0);
+  padding-left: var(--tw-space-x-reverse, 0);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (min-width: 640px) {
+  .container-sm {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-sm {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-sm {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-sm {
+    max-width: 1280px;
+  }
+}
+
+/* Responsive Spacing Utilities */
+.space-x-0 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 0;
+  margin-right: calc(0px * var(--tw-space-x-reverse));
+  margin-left: calc(0px * calc(1 - var(--tw-space-x-reverse)));
+}
+.space-y-0 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0px * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0px * var(--tw-space-y-reverse));
+}
+
+/* Add more responsive spacing as needed */
+
+/* Typography Scale - Using Tailwind's default scale but we can customize if needed */
+.font-heading {
+  @apply font-serif;
+}
+
+.font-body {
+  @apply font-sans;
+}
+
+/* Responsive text sizes */
+.text-xs-responsive {
+  @apply text-xs;
+}
+.text-sm-responsive {
+  @apply text-sm;
+}
+.text-base-responsive {
+  @apply text-base;
+}
+.text-lg-responsive {
+  @apply text-lg;
+}
+.text-xl-responsive {
+  @apply text-xl;
+}
+.text-2xl-responsive {
+  @apply text-2xl;
+}
+.text-3xl-responsive {
+  @apply text-3xl;
+}
+
+/* === END RESPONSIVE FOUNDATION === */

@@ -223,6 +223,7 @@
                 + Add Subject
             </a>
         </div>
+        <div class="card-table">
         <table>
             <thead>
                 <tr>
@@ -275,6 +276,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 
 </div>{{-- /sem-panel --}}

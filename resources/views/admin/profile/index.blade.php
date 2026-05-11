@@ -152,6 +152,7 @@
                 <div class="sc-sub">{{ $admins->count() }} account(s) with admin access</div>
             </div>
         </div>
+        <div class="card-table">
         <table class="admin-table">
             <thead>
                 <tr>
@@ -197,6 +198,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
     </div>
 
 </div>

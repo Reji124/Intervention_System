@@ -66,6 +66,7 @@
 </div>
 
 <div class="card">
+    <div class="card-table">
     <table>
         <thead>
             <tr>
@@ -115,6 +116,7 @@
         @endforelse
         </tbody>
     </table>
+    </div>
 </div>
 
 @endsection
