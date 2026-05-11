@@ -49,14 +49,6 @@ class InterventionController extends Controller
             $semesters   = Semester::with('schoolYear')->orderByDesc('id')->get();
             $departments = Department::orderBy('department_name')->get();
             $subjects    = Subject::orderBy('subject_code')->get();
-            $teachers = Teacher::with([
-                'teacherSubjects.subject',
-                'teacherSubjects.semester',
-                'notes',
-            ])
-            ->whereHas('teacherSubjects.exams.examResults') // ← only teachers with uploaded results
-            ->orderBy('teacher_name')
-            ->get();
 
             $categories = DB::table('subjects')
                             ->select(DB::raw('DISTINCT category'))
@@ -68,7 +60,7 @@ class InterventionController extends Controller
             $activeSemester = Semester::with('schoolYear')
                     ->where('is_active', true)
                     ->first()
-                 ?? Semester::with('schoolYear')
+                ?? Semester::with('schoolYear')
                     ->latest('id')
                     ->first();
 
@@ -116,7 +108,19 @@ class InterventionController extends Controller
 
             $teacherSubjects = $tsQuery->orderBy('teacher_id')->get();
 
-            // ── Load teacher notes ─────────────────────────────────────────────
+            // ── Derive teachers from already-filtered teacherSubjects ─────────
+            $teachers = Teacher::with(['notes'])
+                ->whereIn('id', $teacherSubjects->pluck('teacher_id')->unique())
+                ->orderBy('teacher_name')
+                ->get()
+                ->each(function ($teacher) use ($teacherSubjects) {
+                    $teacher->setRelation(
+                        'teacherSubjects',
+                        $teacherSubjects->where('teacher_id', $teacher->id)->values()
+                    );
+                });
+
+            // ── Load teacher notes ────────────────────────────────────────────
             $notesSemesterId = $selectedSem ?? $activeSemester?->id;
 
             try {
@@ -128,7 +132,7 @@ class InterventionController extends Controller
                 $teacherNotes = collect();
             }
 
-            // ── Build grouped structure ────────────────────────────────────────
+            // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
                 ->filter(fn($ts) => $ts->teacher && $ts->subject)
                 ->groupBy(fn($ts) => $ts->teacher->teacher_name)
@@ -151,8 +155,8 @@ class InterventionController extends Controller
                             ->map(function ($examsOfType) use ($teacherNote, $subjectTSList) {
                                 $allResults     = $examsOfType->flatMap(fn($e) => $e->examResults);
                                 $failingResults = $allResults->where('remark', 'fail')
-                                                             ->sortBy('percentage')
-                                                             ->values();
+                                                            ->sortBy('percentage')
+                                                            ->values();
                                 $examWithMatrix = $examsOfType->first(fn($e) => !empty($e->item_matrix_data));
                                 $anyExam        = $examsOfType->first();
 
