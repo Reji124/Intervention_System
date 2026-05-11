@@ -70,8 +70,8 @@ class InterventionController extends Controller
 
             // ── Main query ────────────────────────────────────────────────────
             $tsQuery = TeacherSubject::with([
-                'teacher',
-                'subject',
+                'teacher' => fn($q) => $q->withoutGlobalScopes(),
+                'subject' => fn($q) => $q->withoutGlobalScopes(),
                 'semester.schoolYear',
                 'exams.examResults.student',
                 'exams.examResults.exam',
@@ -134,7 +134,7 @@ class InterventionController extends Controller
 
             // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
-                ->filter(fn($ts) => $ts->teacher && $ts->subject)
+                ->filter(fn($ts) => $ts->teacher !== null && $ts->subject !== null)
                 ->groupBy(fn($ts) => $ts->teacher->teacher_name)
                 ->map(function ($teacherTSList) use ($teacherNotes) {
                     $teacher     = $teacherTSList->first()->teacher;
