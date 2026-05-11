@@ -500,25 +500,21 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
 @php
     $firstSubjectData = $subjectMap->first();
     $teacherObj  = $firstSubjectData['teacher'] ?? $firstSubjectData['teacher_subject']?->teacher;
-    if (!$teacherObj) {
-        \Log::warning('Teacher object null for: ' . $teacherName);
-        continue;
-    }
-
     $teacherNote = $firstSubjectData['teacher_note'];
     $noteStatus  = $teacherNote?->status ?? 'no_status';
     $noteLabels  = \App\Models\TeacherNote::STATUSES;
     $semId       = $selectedSem ?? $activeSemester?->id;
-    
     $tPass  = $subjectMap->sum('pass_count');
     $tFail  = $subjectMap->sum('fail_count');
     $tTotal = $subjectMap->sum('total_count');
     $tRate  = $tTotal > 0 ? round(($tPass / $tTotal) * 100) : 0;
-    
-    $inits = collect(explode(' ', $teacherName))
-               ->map(fn($w) => strtoupper(substr($w, 0, 1)))
-               ->take(2)->implode('');
+    $inits  = collect(explode(' ', $teacherName))
+                ->map(fn($w) => strtoupper(substr($w, 0, 1)))
+                ->take(2)->implode('');
 @endphp
+@if(!$teacherObj)
+    @continue
+@endif
 
 <div class="teacher-block" id="teacher-block-{{ $teacherObj->id }}">
     <div class="teacher-header" onclick="toggleTeacher(this)">
