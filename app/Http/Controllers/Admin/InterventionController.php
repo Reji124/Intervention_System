@@ -85,7 +85,8 @@ class InterventionController extends Controller
                 'exams.uploadedBy',
             ])
                 ->whereHas('teacher')
-                ->whereHas('subject');
+                ->whereHas('subject')
+                ->whereHas('exams.examResults');
 
             if ($selectedSem) {
                 $tsQuery->where('semester_id', $selectedSem);
@@ -319,7 +320,7 @@ class InterventionController extends Controller
 
     private function buildFilteredQuery(Request $request)
     {
-        $query = TeacherSubject::query();
+        $query = TeacherSubject::query()->whereHas('exams.examResults');
 
         if ($request->filled('semester_id')) {
             $query->where('semester_id', $request->semester_id);

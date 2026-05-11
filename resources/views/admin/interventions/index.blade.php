@@ -1295,9 +1295,12 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
     cat.addEventListener('change',  () => { filterSubject(); });
 
     // Run on page load if filters are pre-selected
-    if (sy.value)                        filterSem();
-    if (sem.value || dept.value)         filterTeacher();
-    if (dept.value || cat.value)         filterSubject();
+
+    if (sy.value)                                filterSem();
+    if (sem.value || dept.value || sem.options[sem.selectedIndex]?.value) filterTeacher();
+    if (dept.value || cat.value)                 filterSubject();
+    // Explicitly trigger teacher filter even when sem appears blank
+    filterTeacher();
 })();
 
 </script>
