@@ -1306,23 +1306,7 @@ document.getElementById('mass-modal').addEventListener('click', function(e) {
 </script>
 
 @foreach($grouped as $teacherName => $subjectMap)
-@php
-    $firstData = $subjectMap->first();
-    $tObj      = $firstData['teacher'] ?? $firstData['teacher_subject']->teacher ?? null;
-    $tNote     = $firstData['teacher_note'];
-@endphp
-@if($tNote && $tObj)
-<script>
-(function() {
-    const btn = document.getElementById('notes-btn-{{ $tObj->id }}');
-    if (btn) {
-        btn.dataset.notes     = {!! json_encode($tNote->notes ?? '') !!};
-        btn.dataset.updatedBy = {!! json_encode($tNote->updatedByUser?->name ?? '') !!};
-        btn.dataset.updatedAt = {!! json_encode($tNote->updated_at?->format('M d, Y g:i A') ?? '') !!};
-    }
-})();
-</script>
-@endif
+<div>{{ $teacherName }}</div>
 @endforeach
 
 @endpush
