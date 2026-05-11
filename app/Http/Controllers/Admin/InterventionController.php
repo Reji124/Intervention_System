@@ -134,17 +134,17 @@ class InterventionController extends Controller
 
             // ── Build grouped structure ───────────────────────────────────────
             $grouped = $teacherSubjects
-                ->filter(fn($ts) => $ts->teacher !== null && $ts->subject !== null)
+                ->filter(fn($ts) => $ts->teacher && $ts->subject)
                 ->groupBy(fn($ts) => $ts->teacher->teacher_name)
                 ->map(function ($teacherTSList) use ($teacherNotes) {
-                    $teacher     = $teacherTSList->first()->teacher;
+                    $teacher     = $teacherTSList->first()->teacher;  // resolved once here
                     $teacherNote = $teacherNotes->get($teacher->id);
 
                     return $teacherTSList->groupBy(function ($ts) {
                         return $ts->subject->subject_code
                             . ' — ' . $ts->subject->subject_name
                             . ($ts->section ? ' (' . $ts->section . ')' : '');
-                    })->map(function ($subjectTSList) use ($teacherNote) {
+                    })->map(function ($subjectTSList) use ($teacherNote, $teacher) {  // ← add $teacher
 
                         $allSubjectResults = $subjectTSList->flatMap(
                             fn($ts) => $ts->exams->flatMap(fn($e) => $e->examResults)
@@ -182,6 +182,7 @@ class InterventionController extends Controller
                                 : 0,
                             'teacher_note'    => $teacherNote,
                             'teacher_subject' => $subjectTSList->first(),
+                            'teacher'         => $teacher,  // ← pass teacher directly
                         ];
                     });
                 });
