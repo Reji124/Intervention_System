@@ -424,6 +424,10 @@
         </a>
 
         <div class="nav-section-label">Reports</div>
+        <a href="{{ route('admin.analytics.dashboard') }}" class="nav-item {{ request()->routeIs('admin.analytics*') ? 'active' : '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Analytics
+        </a>
         <a href="{{ route('admin.interventions.index') }}" class="nav-item {{ request()->routeIs('admin.interventions*') ? 'active' : '' }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             Interventions

@@ -79,6 +79,28 @@ Route::prefix('admin')
         Route::delete('teacher-subjects/{teacherSubject}/remove',
             [\App\Http\Controllers\Admin\TeacherController::class, 'removeSubject'])
             ->name('teachers.remove-subject');
+
+        // ── ANALYTICS MODULE ──────────────────────────────────────────────────
+        Route::get('analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'dashboard'])
+            ->name('analytics.dashboard');
+        Route::post('analytics/clear-cache', [\App\Http\Controllers\Admin\AnalyticsController::class, 'clearCache'])
+            ->name('analytics.clear-cache');
+
+        // Teacher Analytics
+        Route::get('analytics/teachers', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'index'])
+            ->name('analytics.teachers.index');
+        Route::get('analytics/teachers/{teacher}', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'show'])
+            ->name('analytics.teachers.show');
+        Route::post('analytics/teachers/{teacher}/export', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'export'])
+            ->name('analytics.teachers.export');
+
+        // Department Analytics
+        Route::get('analytics/departments', [\App\Http\Controllers\Admin\DepartmentAnalyticsController::class, 'index'])
+            ->name('analytics.departments.index');
+        Route::get('analytics/departments/{department}', [\App\Http\Controllers\Admin\DepartmentAnalyticsController::class, 'show'])
+            ->name('analytics.departments.show');
+        Route::post('analytics/departments/{department}/export', [\App\Http\Controllers\Admin\DepartmentAnalyticsController::class, 'export'])
+            ->name('analytics.departments.export');
     });
 
 // ── ASSISTANT ROUTES ──────────────────────────────────────────────────────────

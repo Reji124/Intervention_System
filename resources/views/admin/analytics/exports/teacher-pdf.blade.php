@@ -1,0 +1,275 @@
+{{-- resources/views/admin/analytics/exports/teacher-pdf.blade.php --}}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Report - {{ $teacher->teacher_name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header {
+            border-bottom: 3px solid #0f1c2e;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            background: #f0ece3;
+            border: 2px dashed #c9973a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #718096;
+            text-align: center;
+        }
+        .header-text h1 { font-size: 20px; color: #0f1c2e; margin-bottom: 5px; }
+        .header-text p { font-size: 12px; color: #718096; }
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .section-title {
+            background: #faf8f5;
+            padding: 10px 15px;
+            border-left: 4px solid #c9973a;
+            margin-bottom: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #0f1c2e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th {
+            background: #f5f0e8;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: bold;
+            color: #4a5568;
+            border-bottom: 1px solid #e2d9cc;
+        }
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f0ece3;
+            font-size: 11px;
+        }
+        .info-grid {
+            display: table;
+            width: 100%;
+        }
+        .info-item {
+            display: table-cell;
+            width: 25%;
+            padding: 10px;
+            background: #faf8f5;
+            border: 1px solid #e2d9cc;
+        }
+        .info-label {
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #718096;
+            margin-bottom: 3px;
+        }
+        .info-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0f1c2e;
+        }
+        .narrative {
+            background: #fff9f5;
+            border-left: 3px solid #c9973a;
+            padding: 12px;
+            font-size: 11px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .footer {
+            border-top: 1px solid #e2d9cc;
+            padding-top: 10px;
+            margin-top: 30px;
+            font-size: 9px;
+            color: #718096;
+            text-align: right;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        .risk-low { background: #eaf4ee; color: #2d7a4f; }
+        .risk-moderate { background: #fef3e2; color: #b7621a; }
+        .risk-high { background: #fdf2f2; color: #c0392b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {{-- Header --}}
+        <div class="header">
+            <div class="logo-placeholder">Logo/Image</div>
+            <div class="header-text">
+                <h1>Teacher Performance Report</h1>
+                <p>Academic Year & Semester</p>
+                <p>{{ $exportedAt->format('F j, Y') }}</p>
+            </div>
+        </div>
+
+        {{-- Teacher Information --}}
+        <div class="section">
+            <div class="section-title">Teacher Information</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Full Name</div>
+                    <div class="info-value">{{ $teacher->teacher_name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Teacher Code</div>
+                    <div class="info-value">{{ $teacher->teacher_code ?? 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ $teacher->email ?? 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Subjects</div>
+                    <div class="info-value">{{ $teacher->teacherSubjects->count() }}</div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Performance Summary --}}
+        <div class="section">
+            <div class="section-title">Performance Summary</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Exam Type</th>
+                        <th>Pass Rate</th>
+                        <th>Failed Students</th>
+                        <th>Mean Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($summary as $examType => $metrics)
+                    <tr>
+                        <td>{{ $examType }}</td>
+                        <td>{{ $metrics['pass_rate'] }}%</td>
+                        <td>{{ $metrics['failed_students'] }}</td>
+                        <td>{{ $metrics['mean_score'] }}%</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Overall Pass Rate</div>
+                    <div class="info-value">{{ $overall['pass_rate'] }}%</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Failed</div>
+                    <div class="info-value">{{ $overall['failed_students'] }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Mean Score</div>
+                    <div class="info-value">{{ $overall['mean_score'] }}%</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Students</div>
+                    <div class="info-value">{{ $overall['total_students'] }}</div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Subject Breakdown --}}
+        <div class="section">
+            <div class="section-title">Subject Performance Breakdown</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Students</th>
+                        <th>Pass Rate</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($subjectBreakdown as $subject)
+                    <tr>
+                        <td>{{ $subject['subject_name'] }}</td>
+                        <td>{{ $subject['total_students'] }}</td>
+                        <td>{{ $subject['pass_rate'] }}%</td>
+                        <td>
+                            <span class="badge risk-{{ $subject['risk_level'] }}">
+                                {{ $subject['risk_label'] }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Factor Analysis --}}
+        <div class="section">
+            <div class="section-title">Factor Analysis</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Factor</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Exam Factor</td>
+                        <td>{{ $analysis['factors']['exam_factor'] }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Teacher Factor</td>
+                        <td>{{ $analysis['factors']['teacher_factor'] }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Student Factor</td>
+                        <td>{{ $analysis['factors']['student_factor'] }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Curriculum Factor</td>
+                        <td>{{ $analysis['factors']['curriculum_factor'] }}%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Professional Narrative --}}
+        <div class="section">
+            <div class="section-title">Professional Narrative Report</div>
+            <div class="narrative">
+                {{ $narrative }}
+            </div>
+        </div>
+
+        {{-- Footer --}}
+        <div class="footer">
+            <p>Generated by: {{ $generatedBy }} | {{ $exportedAt->format('F j, Y H:i:s') }}</p>
+            <p>This report contains confidential academic performance data.</p>
+        </div>
+    </div>
+</body>
+</html>
