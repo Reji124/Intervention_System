@@ -72,7 +72,7 @@ class PerformanceCalculator
                 'pass_rate'       => $passRate,
                 'failed_students' => $failCount,
                 'mean_score'      => $meanScore,
-                'difficulty'      => $this->estimateDifficulty($passRate),
+                'difficulty'      => $totalResults > 0 ? $this->estimateDifficulty($passRate) : 'No data',
                 'total_students'  => $totalResults,
             ];
         }
