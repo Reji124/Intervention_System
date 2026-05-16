@@ -21,18 +21,25 @@
             justify-content: space-between;
             align-items: flex-start;
         }
-        .logo-placeholder {
+        .report-logo-wrap {
             width: 80px;
             height: 80px;
-            background: #f0ece3;
-            border: 2px dashed #c9973a;
+            border: 1px solid #e2d9cc;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .report-logo {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+        }
+        .logo-placeholder {
+            font-size: 9px;
             color: #718096;
-            text-align: center;
         }
         .header-text h1 { font-size: 20px; color: #0f1c2e; margin-bottom: 5px; }
         .header-text p { font-size: 12px; color: #718096; }
@@ -124,10 +131,16 @@
     <div class="container">
         {{-- Header --}}
         <div class="header">
-            <div class="logo-placeholder">Logo/Image</div>
+            <div class="report-logo-wrap">
+                @if(!empty($reportLogoPath) && file_exists($reportLogoPath))
+                    <img class="report-logo" src="{{ $reportLogoPath }}" alt="HCDC logo">
+                @else
+                    <span class="logo-placeholder">Logo</span>
+                @endif
+            </div>
             <div class="header-text">
                 <h1>Teacher Performance Report</h1>
-                <p>Academic Year & Semester</p>
+                <p>{{ $academicPeriod }}</p>
                 <p>{{ $exportedAt->format('F j, Y') }}</p>
             </div>
         </div>

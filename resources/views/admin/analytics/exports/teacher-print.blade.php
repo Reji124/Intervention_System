@@ -36,12 +36,22 @@
     .print-logo {
         width: 80px;
         height: 80px;
-        background: #f0ece3;
-        border: 2px dashed #c9973a;
+        border: 1px solid #e2d9cc;
         border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .print-logo img {
+        width: 76px;
+        height: 76px;
+        object-fit: contain;
+    }
+
+    .print-logo span {
         font-size: 9px;
         color: #666;
     }
@@ -152,9 +162,16 @@
 <div class="print-container">
     {{-- Header --}}
     <div class="print-header">
-        <div class="print-logo">LOGO</div>
+        <div class="print-logo">
+            @if(!empty($reportLogoUrl) && !empty($reportLogoPath) && file_exists($reportLogoPath))
+                <img src="{{ $reportLogoUrl }}" alt="HCDC logo">
+            @else
+                <span>LOGO</span>
+            @endif
+        </div>
         <div class="print-title">
             <h1>Teacher Performance Report</h1>
+            <p>{{ $academicPeriod }}</p>
             <p>{{ $exportedAt->format('F j, Y') }}</p>
         </div>
     </div>

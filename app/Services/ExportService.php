@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Teacher;
 use App\Models\Department;
+use App\Models\Semester;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\View;
 
@@ -41,7 +42,7 @@ class ExportService
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
-        ];
+        ] + $this->getReportHeaderData();
 
         $pdf = Pdf::loadView('admin.analytics.exports.teacher-pdf', $data);
         $filename = "teacher_report_{$teacher->teacher_code}_{$this->getCurrentSemesterCode()}.pdf";
@@ -160,7 +161,7 @@ class ExportService
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
-        ];
+        ] + $this->getReportHeaderData();
 
         $pdf = Pdf::loadView('admin.analytics.exports.department-pdf', $data);
         $filename = "department_report_{$department->id}_{$this->getCurrentSemesterCode()}.pdf";
@@ -246,7 +247,7 @@ class ExportService
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
-        ]);
+        ] + $this->getReportHeaderData());
     }
 
     /**
@@ -273,7 +274,7 @@ class ExportService
      */
     private function getCurrentSemesterCode(): string
     {
-        $semester = \App\Models\Semester::where('is_active', true)->first();
+        $semester = $this->getCurrentSemester();
         if (!$semester || !$semester->schoolYear) {
             return date('YmdHis');
         }
@@ -282,5 +283,36 @@ class ExportService
         $sem = str_replace(' ', '', $semester->semester_name);
 
         return "{$year}_{$sem}";
+    }
+
+    /**
+     * Shared report header data for PDF and print exports.
+     */
+    private function getReportHeaderData(): array
+    {
+        $currentSemester = $this->getCurrentSemester();
+
+        return [
+            'currentSemester' => $currentSemester,
+            'academicPeriod' => $this->formatAcademicPeriod($currentSemester),
+            'reportLogoPath' => public_path('images/branding/hcdc_logo.png'),
+            'reportLogoUrl' => asset('images/branding/hcdc_logo.png'),
+        ];
+    }
+
+    private function getCurrentSemester(): ?Semester
+    {
+        return Semester::with('schoolYear')
+            ->where('is_active', true)
+            ->first();
+    }
+
+    private function formatAcademicPeriod(?Semester $semester): string
+    {
+        if (!$semester || !$semester->schoolYear) {
+            return 'Academic Year & Semester Not Set';
+        }
+
+        return "Academic Year {$semester->schoolYear->year_start}-{$semester->schoolYear->year_end} - {$semester->semester_name}";
     }
 }
