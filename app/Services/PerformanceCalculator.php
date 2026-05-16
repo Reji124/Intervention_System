@@ -15,6 +15,13 @@ use Illuminate\Support\Collection;
  */
 class PerformanceCalculator
 {
+    private const EXAM_TYPES = [
+        'prelim' => 'Prelim',
+        'midterm' => 'Midterm',
+        'prefinal' => 'Prefinal',
+        'final' => 'Final',
+    ];
+
     /**
      * Get performance summary for a teacher across all exam types.
      * 
@@ -27,7 +34,6 @@ class PerformanceCalculator
      */
     public function getTeacherPerformanceSummary(Teacher $teacher): array
     {
-        $examTypes = ['Prelim', 'Midterm', 'Prefinal', 'Final'];
         $summary = [];
 
         // Load all data once instead of per exam type
@@ -35,7 +41,7 @@ class PerformanceCalculator
             ->with(['exams.examResults'])
             ->get();
 
-        foreach ($examTypes as $examType) {
+        foreach (self::EXAM_TYPES as $examType => $examLabel) {
             $totalResults = 0;
             $passCount    = 0;
             $failCount    = 0;
@@ -62,7 +68,7 @@ class PerformanceCalculator
             $passRate  = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
             $meanScore = $totalResults > 0 ? round($totalScore / $totalResults, 2) : 0;
 
-            $summary[$examType] = [
+            $summary[$examLabel] = [
                 'pass_rate'       => $passRate,
                 'failed_students' => $failCount,
                 'mean_score'      => $meanScore,
@@ -266,14 +272,13 @@ class PerformanceCalculator
      */
     public function getTeacherTrendData(Teacher $teacher): array
     {
-        $examTypes = ['Prelim', 'Midterm', 'Prefinal', 'Final'];
+        $summary = $this->getTeacherPerformanceSummary($teacher);
         $trendData = [];
 
-        foreach ($examTypes as $examType) {
-            $summary = $this->getTeacherPerformanceSummary($teacher);
+        foreach (self::EXAM_TYPES as $examLabel) {
             $trendData[] = [
-                'exam_type' => $examType,
-                'pass_rate' => $summary[$examType]['pass_rate'] ?? 0,
+                'exam_type' => $examLabel,
+                'pass_rate' => $summary[$examLabel]['pass_rate'] ?? 0,
             ];
         }
 
