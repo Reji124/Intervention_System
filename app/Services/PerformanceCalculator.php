@@ -30,42 +30,44 @@ class PerformanceCalculator
         $examTypes = ['Prelim', 'Midterm', 'Prefinal', 'Final'];
         $summary = [];
 
+        // Load all data once instead of per exam type
+        $teacherSubjects = $teacher->teacherSubjects()
+            ->with(['exams.examResults'])
+            ->get();
+
         foreach ($examTypes as $examType) {
-            $exams = $teacher->teacherSubjects()
-                ->with(['exams' => function ($q) use ($examType) {
-                    $q->where('exam_type', $examType)->with('examResults');
-                }])
-                ->get();
-
             $totalResults = 0;
-            $passCount = 0;
-            $failCount = 0;
-            $totalScore = 0;
+            $passCount    = 0;
+            $failCount    = 0;
+            $totalScore   = 0;
 
-            $exams->each(function ($ts) use (&$totalResults, &$passCount, &$failCount, &$totalScore) {
-                $ts->exams->each(function ($exam) use (&$totalResults, &$passCount, &$failCount, &$totalScore) {
-                    $exam->examResults->each(function ($result) use (&$totalResults, &$passCount, &$failCount, &$totalScore) {
+            foreach ($teacherSubjects as $ts) {
+                // Filter exams by type HERE, after eager load
+                $examsOfType = $ts->exams->where('exam_type', $examType);
+
+                foreach ($examsOfType as $exam) {
+                    foreach ($exam->examResults as $result) {
                         $totalResults++;
+                        $totalScore += $result->percentage;
+
                         if ($result->remark === 'pass') {
                             $passCount++;
                         } else {
                             $failCount++;
                         }
-                        $totalScore += $result->percentage;
-                    });
-                });
-            });
+                    }
+                }
+            }
 
-            $passRate = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
+            $passRate  = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
             $meanScore = $totalResults > 0 ? round($totalScore / $totalResults, 2) : 0;
-            $difficulty = $this->estimateDifficulty($passRate);
 
             $summary[$examType] = [
-                'pass_rate' => $passRate,
+                'pass_rate'       => $passRate,
                 'failed_students' => $failCount,
-                'mean_score' => $meanScore,
-                'difficulty' => $difficulty,
-                'total_students' => $totalResults,
+                'mean_score'      => $meanScore,
+                'difficulty'      => $this->estimateDifficulty($passRate),
+                'total_students'  => $totalResults,
             ];
         }
 
