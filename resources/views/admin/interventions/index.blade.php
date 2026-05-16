@@ -652,7 +652,7 @@ table.matrix-tbl { width:100%;border-collapse:collapse;min-width:560px; }
                                 {{ ucfirst($examType) }}
                             </span>
                             <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:#f0ece3;color:var(--text-mid);padding:1px 7px;border-radius:10px">
-                                {{ $exam?->grading_method === 'base_20' ? 'Base 20' : 'Base 50' }}
+                                {{ \App\Models\Exam::gradingMethodLabel($exam?->grading_method) }}
                             </span>
                             @if($hasMatrix)
                             <span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;background:var(--green-bg);color:var(--green);padding:1px 7px;border-radius:10px">
@@ -1037,7 +1037,9 @@ function closeEdit() {
         const prev  = document.getElementById('edit-preview');
         if (raw >= 0 && total > 0) {
             let pct;
-            if (editingGradingMethod === 'base_20') {
+            if (editingGradingMethod === 'base_0') {
+                pct = (raw / total * 100).toFixed(2);
+            } else if (editingGradingMethod === 'base_20') {
                 pct = (20 + (raw / total * 80)).toFixed(2);
             } else {
                 pct = (50 + (raw / total * 50)).toFixed(2);

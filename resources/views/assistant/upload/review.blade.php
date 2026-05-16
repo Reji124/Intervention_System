@@ -196,7 +196,7 @@
         <div class="meta-item">
             <span class="meta-label">Grading Method</span>
             <span class="meta-value">
-                {{ $context['grading_method'] === 'base_20' ? 'Base 20' : 'Base 50' }}
+                {{ \App\Models\Exam::gradingMethodLabel($context['grading_method'] ?? null) }}
             </span>
         </div>
     </div>

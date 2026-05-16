@@ -12,6 +12,7 @@ return new class extends Migration
             $table->string('grading_method')->default('base_50')->after('exam_type');
             // 'base_50' → Final Grade = 50 + (score / total × 50)
             // 'base_20' → Final Grade = 20 + (score / total × 80)
+            // 'base_0'  → Final Grade = score / total × 100
         });
     }
 

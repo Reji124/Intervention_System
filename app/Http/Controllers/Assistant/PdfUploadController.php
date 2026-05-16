@@ -101,7 +101,7 @@ class PdfUploadController extends Controller
             'exam_type'          => 'required|in:prelim,midterm,prefinal,final',
             'master_list'        => 'required|file|mimes:pdf|max:10240',
             'item_matrix'        => 'nullable|file|mimes:pdf|max:10240',
-            'grading_method'     => 'required|in:base_50,base_20',
+            'grading_method'     => 'required|in:' . implode(',', Exam::GRADING_METHODS),
         ]);
 
         // ── Guard: reject if already fully locked ────────────────────────────
@@ -140,10 +140,7 @@ class PdfUploadController extends Controller
             $total = (int)   ($row['total_items'] ?? 0);
 
             if ($total > 0 && $score >= 0) {
-                $row['percentage'] = match($gradingMethod) {
-                    'base_20' => round(20 + ($score / $total * 80), 2),
-                    default   => round(50 + ($score / $total * 50), 2),
-                };
+                $row['percentage'] = Exam::computeGradeForMethod($gradingMethod, $score, $total);
                 $row['remark'] = $row['percentage'] >= 75.0 ? 'pass' : 'fail';
             }
             // If total could not be derived, keep the PDF grade as fallback
@@ -206,7 +203,7 @@ class PdfUploadController extends Controller
             'students.*.raw_score'    => 'required|integer',
             'students.*.percentage'   => 'required|numeric',
             'students.*.remark'       => 'required|in:pass,fail',
-            'grading_method'          => 'required|in:base_50,base_20',
+            'grading_method'          => 'required|in:' . implode(',', Exam::GRADING_METHODS),
         ]);
 
         // Pull session data BEFORE the transaction

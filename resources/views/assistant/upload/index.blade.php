@@ -173,7 +173,7 @@
         <div>
             <div class="step-label">Step 2 — Grading Method</div>
             <div class="field">
-                <div style="display:flex;gap:12px;margin-top:4px">
+                <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
                     <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;
                                 padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);
                                 background:#faf8f5;transition:all .2s" id="lbl-base50">
@@ -195,6 +195,18 @@
                             <div style="font-weight:600;color:var(--text-dark)">Base 20</div>
                             <div style="font-size:11px;color:var(--text-soft);margin-top:2px">
                                 Grade = 20 + (score ÷ total × 80)
+                            </div>
+                        </div>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;cursor:pointer;
+                                padding:10px 16px;border-radius:8px;border:1.5px solid var(--border);
+                                background:#faf8f5;transition:all .2s" id="lbl-base0">
+                        <input type="radio" name="grading_method" value="base_0"
+                            onchange="updateGradingLabel()">
+                        <div>
+                            <div style="font-weight:600;color:var(--text-dark)">Base 0</div>
+                            <div style="font-size:11px;color:var(--text-soft);margin-top:2px">
+                                Grade = score / total * 100
                             </div>
                         </div>
                     </label>
@@ -500,11 +512,13 @@ selExamType.addEventListener('change', resolve);
 @endif
 
 function updateGradingLabel() {
-    const base50 = document.querySelector('input[name="grading_method"][value="base_50"]');
-    document.getElementById('lbl-base50').style.borderColor = base50.checked ? 'var(--teal-light)' : 'var(--border)';
-    document.getElementById('lbl-base50').style.background  = base50.checked ? '#f0faf7' : '#faf8f5';
-    document.getElementById('lbl-base20').style.borderColor = base50.checked ? 'var(--border)' : 'var(--teal-light)';
-    document.getElementById('lbl-base20').style.background  = base50.checked ? '#faf8f5' : '#f0faf7';
+    ['base_50', 'base_20', 'base_0'].forEach(method => {
+        const input = document.querySelector(`input[name="grading_method"][value="${method}"]`);
+        const label = document.getElementById(`lbl-${method.replace('_', '')}`);
+        if (!input || !label) return;
+        label.style.borderColor = input.checked ? 'var(--teal-light)' : 'var(--border)';
+        label.style.background  = input.checked ? '#f0faf7' : '#faf8f5';
+    });
 }
 // Run once on load to set initial highlight
 updateGradingLabel();
