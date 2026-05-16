@@ -36,6 +36,14 @@ class AnalyticsService
     // >= 85% = low risk (green)
 
     /**
+     * Get total uploaded exam result rows.
+     */
+    public function getTotalExamResults(): int
+    {
+        return ExamResult::count();
+    }
+
+    /**
      * Get overall school pass rate.
      */
     public function getOverallPassRate(): int
@@ -309,8 +317,17 @@ class AnalyticsService
     /**
      * Get risk level label and color for a given pass rate.
      */
-    public static function getRiskLevel(int $passRate): array
+    public static function getRiskLevel(?int $passRate, int $totalResults = 1): array
     {
+        if ($totalResults <= 0 || $passRate === null) {
+            return [
+                'level' => 'none',
+                'label' => 'No data',
+                'color' => 'gray',
+                'badge_class' => 'badge-muted',
+            ];
+        }
+
         if ($passRate >= self::RISK_MODERATE) {
             return [
                 'level' => 'low',

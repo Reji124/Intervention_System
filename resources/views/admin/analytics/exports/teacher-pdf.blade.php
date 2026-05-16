@@ -117,6 +117,7 @@
         .risk-low { background: #eaf4ee; color: #2d7a4f; }
         .risk-moderate { background: #fef3e2; color: #b7621a; }
         .risk-high { background: #fdf2f2; color: #c0392b; }
+        .risk-none { background: #eef0f3; color: #718096; }
     </style>
 </head>
 <body>
@@ -168,11 +169,12 @@
                 </thead>
                 <tbody>
                     @foreach($summary as $examType => $metrics)
+                    @php($hasExamData = $metrics['total_students'] > 0)
                     <tr>
                         <td>{{ $examType }}</td>
-                        <td>{{ $metrics['pass_rate'] }}%</td>
+                        <td>{{ $hasExamData ? $metrics['pass_rate'] . '%' : 'No data' }}</td>
                         <td>{{ $metrics['failed_students'] }}</td>
-                        <td>{{ $metrics['mean_score'] }}%</td>
+                        <td>{{ $hasExamData ? $metrics['mean_score'] . '%' : 'No data' }}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -180,7 +182,7 @@
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Overall Pass Rate</div>
-                    <div class="info-value">{{ $overall['pass_rate'] }}%</div>
+                    <div class="info-value">{{ $overall['total_students'] > 0 ? $overall['pass_rate'] . '%' : 'No data' }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Total Failed</div>
@@ -211,10 +213,11 @@
                 </thead>
                 <tbody>
                     @foreach($subjectBreakdown as $subject)
+                    @php($hasSubjectData = ($subject['total_results'] ?? 0) > 0)
                     <tr>
                         <td>{{ $subject['subject_name'] }}</td>
                         <td>{{ $subject['total_students'] }}</td>
-                        <td>{{ $subject['pass_rate'] }}%</td>
+                        <td>{{ $hasSubjectData ? $subject['pass_rate'] . '%' : 'No data' }}</td>
                         <td>
                             <span class="badge risk-{{ $subject['risk_level'] }}">
                                 {{ $subject['risk_label'] }}

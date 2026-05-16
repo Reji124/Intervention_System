@@ -54,7 +54,10 @@ class TeacherAnalyticsController extends Controller
         // Compute metrics for each teacher
         $teachers->getCollection()->transform(function ($teacher) {
             $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher);
-            $riskLevel = \App\Services\AnalyticsService::getRiskLevel($metrics['pass_rate']);
+            $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
+                $metrics['pass_rate'],
+                $metrics['total_students']
+            );
 
             return [
                 'id' => $teacher->id,

@@ -95,6 +95,11 @@
     .view-btn:hover {
         background: var(--navy-soft);
     }
+
+    .risk-badge.none {
+        background: #eef0f3;
+        color: var(--text-soft);
+    }
 </style>
 
 <p style="font-size: 13px; color: var(--text-soft); margin-bottom: 20px;">
@@ -103,6 +108,7 @@
 
 <div class="dept-grid">
     @forelse($departments as $dept)
+    @php($hasData = $dept['total_students'] > 0)
     <div class="dept-card">
         <div class="dept-header">
             <div class="dept-name">{{ $dept['name'] }}</div>
@@ -117,7 +123,7 @@
         <div class="dept-stats">
             <div class="stat">
                 <div class="stat-label">Pass Rate</div>
-                <div class="stat-value">{{ $dept['pass_rate'] }}%</div>
+                <div class="stat-value">{{ $hasData ? $dept['pass_rate'] . '%' : 'No data' }}</div>
             </div>
             <div class="stat">
                 <div class="stat-label">Teachers</div>

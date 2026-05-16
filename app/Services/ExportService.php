@@ -72,14 +72,28 @@ class ExportService
         // Overall metrics
         $csv[] = ['Overall Performance Summary', '', '', '', ''];
         $csv[] = ['Pass Rate', 'Failure Rate', 'Failed Students', 'Mean Score', 'Total Students'];
-        $csv[] = [$overall['pass_rate'] . '%', $overall['failure_rate'] . '%', $overall['failed_students'], $overall['mean_score'], $overall['total_students']];
+        $hasOverallData = $overall['total_students'] > 0;
+        $csv[] = [
+            $hasOverallData ? $overall['pass_rate'] . '%' : 'No data',
+            $hasOverallData ? $overall['failure_rate'] . '%' : 'No data',
+            $overall['failed_students'],
+            $hasOverallData ? $overall['mean_score'] : 'No data',
+            $overall['total_students'],
+        ];
         $csv[] = [];
 
         // Exam type summary
         $csv[] = ['Exam Type Performance', '', '', '', ''];
         $csv[] = ['Exam Type', 'Pass Rate', 'Failed Students', 'Mean Score', 'Difficulty'];
         foreach ($summary as $examType => $metrics) {
-            $csv[] = [$examType, $metrics['pass_rate'] . '%', $metrics['failed_students'], $metrics['mean_score'], $metrics['difficulty']];
+            $hasExamData = $metrics['total_students'] > 0;
+            $csv[] = [
+                $examType,
+                $hasExamData ? $metrics['pass_rate'] . '%' : 'No data',
+                $metrics['failed_students'],
+                $hasExamData ? $metrics['mean_score'] : 'No data',
+                $metrics['difficulty'],
+            ];
         }
         $csv[] = [];
 
@@ -87,7 +101,14 @@ class ExportService
         $csv[] = ['Subject Performance Breakdown', '', '', '', ''];
         $csv[] = ['Subject', 'Code', 'Pass Rate', 'Failed Students', 'Intervention Count'];
         foreach ($subjectBreakdown as $subject) {
-            $csv[] = [$subject['subject_name'], $subject['subject_code'], $subject['pass_rate'] . '%', $subject['failed_students'], $subject['intervention_count']];
+            $hasSubjectData = ($subject['total_results'] ?? 0) > 0;
+            $csv[] = [
+                $subject['subject_name'],
+                $subject['subject_code'],
+                $hasSubjectData ? $subject['pass_rate'] . '%' : 'No data',
+                $subject['failed_students'],
+                $subject['intervention_count'],
+            ];
         }
 
         return $this->downloadCSV($csv, "teacher_report_{$teacher->teacher_code}_{$this->getCurrentSemesterCode()}.csv");
@@ -113,7 +134,24 @@ class ExportService
                     return $subject->teacherSubjects->pluck('teacher');
                 });
             })
-            ->unique('id');
+            ->unique('id')
+            ->map(function ($teacher) use ($performanceCalc) {
+                $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher);
+                $riskLevel = AnalyticsService::getRiskLevel(
+                    $teacherMetrics['pass_rate'],
+                    $teacherMetrics['total_students']
+                );
+
+                return [
+                    'name' => $teacher->teacher_name,
+                    'pass_rate' => $teacherMetrics['pass_rate'],
+                    'failed_students' => $teacherMetrics['failed_students'],
+                    'total_students' => $teacherMetrics['total_students'],
+                    'risk_level' => $riskLevel['level'],
+                    'risk_label' => $riskLevel['label'],
+                ];
+            })
+            ->sortByDesc('pass_rate');
 
         $data = [
             'department' => $department,
@@ -146,7 +184,13 @@ class ExportService
         // Department summary
         $csv[] = ['Department Summary', '', '', '', ''];
         $csv[] = ['Pass Rate', 'Total Teachers', 'Total Students', '', ''];
-        $csv[] = [$metrics['pass_rate'] . '%', $metrics['total_teachers'], $metrics['total_students'], '', ''];
+        $csv[] = [
+            $metrics['total_students'] > 0 ? $metrics['pass_rate'] . '%' : 'No data',
+            $metrics['total_teachers'],
+            $metrics['total_students'],
+            '',
+            '',
+        ];
         $csv[] = [];
 
         // Teacher rankings
@@ -166,7 +210,13 @@ class ExportService
         $rank = 1;
         foreach ($teachers as $teacher) {
             $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher);
-            $csv[] = [$rank++, $teacher->teacher_name, $teacherMetrics['pass_rate'] . '%', $teacherMetrics['total_students'], ''];
+            $csv[] = [
+                $rank++,
+                $teacher->teacher_name,
+                $teacherMetrics['total_students'] > 0 ? $teacherMetrics['pass_rate'] . '%' : 'No data',
+                $teacherMetrics['total_students'],
+                '',
+            ];
         }
 
         return $this->downloadCSV($csv, "department_report_{$department->id}_{$this->getCurrentSemesterCode()}.csv");

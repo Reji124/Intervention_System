@@ -118,6 +118,7 @@
         .risk-low { background: #eaf4ee; color: #2d7a4f; }
         .risk-moderate { background: #fef3e2; color: #b7621a; }
         .risk-high { background: #fdf2f2; color: #c0392b; }
+        .risk-none { background: #eef0f3; color: #718096; }
     </style>
 </head>
 <body>
@@ -138,7 +139,7 @@
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Overall Pass Rate</div>
-                    <div class="info-value">{{ $metrics['pass_rate'] }}%</div>
+                    <div class="info-value">{{ $metrics['total_students'] > 0 ? $metrics['pass_rate'] . '%' : 'No data' }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Total Teachers</div>
@@ -175,10 +176,11 @@
                 </thead>
                 <tbody>
                     @forelse($teachers as $rank => $teacher)
+                    @php($hasData = $teacher['total_students'] > 0)
                     <tr>
                         <td>{{ $rank + 1 }}</td>
                         <td>{{ $teacher['name'] }}</td>
-                        <td>{{ $teacher['pass_rate'] }}%</td>
+                        <td>{{ $hasData ? $teacher['pass_rate'] . '%' : 'No data' }}</td>
                         <td>{{ $teacher['failed_students'] }}</td>
                         <td>{{ $teacher['total_students'] }}</td>
                         <td>

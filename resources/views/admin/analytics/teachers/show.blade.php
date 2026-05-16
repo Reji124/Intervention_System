@@ -176,6 +176,11 @@
         border-color: var(--navy);
         background: #faf8f5;
     }
+
+    .risk-badge.none {
+        background: #eef0f3;
+        color: var(--text-soft);
+    }
 </style>
 
 {{-- Teacher Info Section --}}
@@ -241,11 +246,12 @@
             </thead>
             <tbody>
                 @foreach($summary as $examType => $metrics)
+                @php($hasExamData = $metrics['total_students'] > 0)
                 <tr>
                     <td style="font-weight: 600;">{{ $examType }}</td>
-                    <td>{{ $metrics['pass_rate'] }}%</td>
+                    <td>{{ $hasExamData ? $metrics['pass_rate'] . '%' : 'No data' }}</td>
                     <td>{{ $metrics['failed_students'] }}</td>
-                    <td>{{ $metrics['mean_score'] }}%</td>
+                    <td>{{ $hasExamData ? $metrics['mean_score'] . '%' : 'No data' }}</td>
                     <td>{{ $metrics['difficulty'] }}</td>
                 </tr>
                 @endforeach
@@ -255,11 +261,11 @@
         <div class="info-grid">
             <div class="info-item">
                 <div class="info-label">Overall Pass Rate</div>
-                <div class="info-value">{{ $overall['pass_rate'] }}%</div>
+                <div class="info-value">{{ $overall['total_students'] > 0 ? $overall['pass_rate'] . '%' : 'No data' }}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">Overall Failure Rate</div>
-                <div class="info-value">{{ $overall['failure_rate'] }}%</div>
+                <div class="info-value">{{ $overall['total_students'] > 0 ? $overall['failure_rate'] . '%' : 'No data' }}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">Total Failed Students</div>
@@ -280,6 +286,7 @@
     </div>
     <div class="section-body">
         @forelse($subjectBreakdown as $subject)
+        @php($hasSubjectData = ($subject['total_results'] ?? 0) > 0)
         <div class="subject-card">
             <div>
                 <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 4px;">
@@ -290,7 +297,7 @@
                 </div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 14px; font-weight: 600; color: var(--text-dark);">{{ $subject['pass_rate'] }}%</div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--text-dark);">{{ $hasSubjectData ? $subject['pass_rate'] . '%' : 'No data' }}</div>
                 <div style="font-size: 10px; color: var(--text-soft);">Pass Rate</div>
             </div>
             <span class="risk-badge {{ $subject['risk_level'] }}">

@@ -35,6 +35,10 @@ class ReportGenerator
         $finalRate = $summary['Final']['pass_rate'] ?? 0;
         $overallRate = $overall['pass_rate'];
 
+        if ($overall['total_students'] <= 0) {
+            return "No uploaded exam results are available yet for {$teacher->teacher_name}. Analytics and risk interpretation will begin once exam results are uploaded.";
+        }
+
         if ($finalRate > $prelimRate) {
             $sentences[] = "Teacher performance demonstrates positive progression from preliminary to final examinations, indicating improved student mastery over the academic period.";
         } elseif ($finalRate < $prelimRate) {
@@ -85,6 +89,10 @@ class ReportGenerator
         $passRate = $deptMetrics['pass_rate'];
         $teacherCount = $deptMetrics['total_teachers'];
         $studentCount = $deptMetrics['total_students'];
+
+        if ($studentCount <= 0) {
+            return "No uploaded exam results are available yet for the {$department->department_name} department. Department analytics and risk interpretation will begin once exam results are uploaded.";
+        }
 
         // Opening: Department overview
         $sentences[] = "The {$department->department_name} department demonstrates an overall pass rate of {$passRate}% across {$teacherCount} faculty members and {$studentCount} students.";
@@ -155,6 +163,10 @@ class ReportGenerator
     public function generateAdministrativeRemark(Teacher $teacher, array $overallMetrics): string
     {
         $passRate = $overallMetrics['pass_rate'];
+
+        if (($overallMetrics['total_students'] ?? 0) <= 0) {
+            return "No uploaded exam results are available yet. Review is pending until assessment data has been uploaded.";
+        }
 
         if ($passRate >= 85) {
             return "Performance metrics indicate strong instructional effectiveness. Recommend recognition and potential peer mentoring leadership opportunities.";

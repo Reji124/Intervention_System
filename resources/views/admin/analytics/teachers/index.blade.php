@@ -176,6 +176,11 @@
         color: var(--red);
     }
 
+    .risk-badge.none {
+        background: #eef0f3;
+        color: var(--text-soft);
+    }
+
     .action-btn {
         padding: 6px 12px;
         font-size: 12px;
@@ -231,10 +236,11 @@
     </thead>
     <tbody>
         @forelse($teachers as $teacher)
+        @php($hasData = $teacher['total_students'] > 0)
         <tr>
             <td style="font-weight: 500;">{{ $teacher['name'] }}</td>
             <td>{{ $teacher['code'] ?? 'N/A' }}</td>
-            <td style="font-weight: 600; color: var(--text-dark);">{{ $teacher['pass_rate'] }}%</td>
+            <td style="font-weight: 600; color: var(--text-dark);">{{ $hasData ? $teacher['pass_rate'] . '%' : 'No data' }}</td>
             <td>{{ $teacher['failed_students'] }}</td>
             <td>{{ $teacher['total_students'] }}</td>
             <td>

@@ -62,23 +62,30 @@ class FactorAnalysisService
         $confidence = 0;
 
         // Check if prelim/midterm has notably lower pass rate than later exams
+        $prelimTotal = $summary['Prelim']['total_students'] ?? 0;
         $prelimPass = $summary['Prelim']['pass_rate'] ?? 0;
-        $finalPass = $summary['Final']['pass_rate'] ?? 0;
 
-        if ($prelimPass < 60) {
+        if ($prelimTotal > 0 && $prelimPass < 60) {
             $confidence += 25; // Early low performance suggests exam difficulty
         }
 
         // Check if failure is distributed across exam types
-        $failureVariation = max(...array_column($summary, 'failed_students')) - 
-                           min(...array_column($summary, 'failed_students'));
+        $summaryWithResults = collect($summary)
+            ->filter(fn ($item) => ($item['total_students'] ?? 0) > 0);
+
+        if ($summaryWithResults->isEmpty()) {
+            return 0;
+        }
+
+        $failureCounts = $summaryWithResults->pluck('failed_students')->all();
+        $failureVariation = max($failureCounts) - min($failureCounts);
         
         if ($failureVariation < 5) {
             $confidence += 20; // Consistent failures suggest exam difficulty
         }
 
         // Check if many exams have low pass rates
-        $lowPassRateCount = collect($summary)
+        $lowPassRateCount = $summaryWithResults
             ->filter(fn($item) => $item['pass_rate'] < 70)
             ->count();
 
@@ -106,7 +113,15 @@ class FactorAnalysisService
         }
 
         // Check if one subject is notably worse
-        $passRates = array_column($subjectBreakdown, 'pass_rate');
+        $subjectsWithResults = collect($subjectBreakdown)
+            ->filter(fn ($item) => ($item['total_results'] ?? 0) > 0)
+            ->values();
+
+        if ($subjectsWithResults->isEmpty()) {
+            return 0;
+        }
+
+        $passRates = $subjectsWithResults->pluck('pass_rate')->all();
         $minPassRate = min($passRates);
         $maxPassRate = max($passRates);
         $variation = $maxPassRate - $minPassRate;
@@ -116,19 +131,19 @@ class FactorAnalysisService
         }
 
         // Check if pass rates are consistently low
-        $lowRateCount = collect($subjectBreakdown)
+        $lowRateCount = $subjectsWithResults
             ->filter(fn($item) => $item['pass_rate'] < 70)
             ->count();
 
-        if ($lowRateCount > 0 && count($subjectBreakdown) > 1) {
+        if ($lowRateCount > 0 && $subjectsWithResults->count() > 1) {
             $confidence += 25; // Some subjects low while others are better
         }
 
         // Check for high failure count relative to students
         $failureRatio = 0;
-        foreach ($subjectBreakdown as $subject) {
-            $ratio = $subject['total_students'] > 0 
-                ? $subject['failed_students'] / $subject['total_students']
+        foreach ($subjectsWithResults as $subject) {
+            $ratio = $subject['total_results'] > 0
+                ? $subject['failed_students'] / $subject['total_results']
                 : 0;
             $failureRatio = max($failureRatio, $ratio);
         }
@@ -193,10 +208,13 @@ class FactorAnalysisService
         // Check if teacher's subjects have consistently low performance
         $subjectBreakdown = (new PerformanceCalculator())->getTeacherSubjectBreakdown($teacher);
 
-        $allLow = collect($subjectBreakdown)
+        $subjectsWithResults = collect($subjectBreakdown)
+            ->filter(fn ($item) => ($item['total_results'] ?? 0) > 0);
+
+        $allLow = $subjectsWithResults
             ->every(fn($item) => $item['pass_rate'] < 75);
 
-        if ($allLow && count($subjectBreakdown) > 0) {
+        if ($allLow && $subjectsWithResults->isNotEmpty()) {
             $confidence += 40; // Across-the-board low performance suggests curriculum
         }
 

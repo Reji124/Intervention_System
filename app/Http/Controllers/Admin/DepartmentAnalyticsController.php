@@ -34,7 +34,10 @@ class DepartmentAnalyticsController extends Controller
         // Compute metrics for each department
         $departmentData = $departments->map(function ($dept) {
             $metrics = $this->performanceCalculator->getDepartmentMetrics($dept);
-            $riskLevel = \App\Services\AnalyticsService::getRiskLevel($metrics['pass_rate']);
+            $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
+                $metrics['pass_rate'],
+                $metrics['total_students']
+            );
 
             return [
                 'id' => $dept->id,
@@ -78,7 +81,10 @@ class DepartmentAnalyticsController extends Controller
         // Compute teacher metrics
         $teacherData = $teachers->map(function ($teacher) {
             $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher);
-            $riskLevel = \App\Services\AnalyticsService::getRiskLevel($metrics['pass_rate']);
+            $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
+                $metrics['pass_rate'],
+                $metrics['total_students']
+            );
 
             return [
                 'id' => $teacher->id,

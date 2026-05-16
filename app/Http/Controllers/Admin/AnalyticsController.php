@@ -23,6 +23,7 @@ class AnalyticsController extends Controller
     public function dashboard()
     {
         $kpis = [
+            'total_exam_results' => $this->analyticsService->getTotalExamResults(),
             'overall_pass_rate' => $this->analyticsService->getOverallPassRate(),
             'total_failed_students' => $this->analyticsService->getTotalFailedStudents(),
             'highest_performing_department' => $this->analyticsService->getHighestPerformingDepartment(),

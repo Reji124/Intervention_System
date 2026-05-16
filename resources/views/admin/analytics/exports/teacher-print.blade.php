@@ -192,11 +192,12 @@
             </thead>
             <tbody>
                 @foreach($summary as $examType => $metrics)
+                @php($hasExamData = $metrics['total_students'] > 0)
                 <tr>
                     <td>{{ $examType }}</td>
-                    <td>{{ $metrics['pass_rate'] }}%</td>
+                    <td>{{ $hasExamData ? $metrics['pass_rate'] . '%' : 'No data' }}</td>
                     <td>{{ $metrics['failed_students'] }}</td>
-                    <td>{{ $metrics['mean_score'] }}%</td>
+                    <td>{{ $hasExamData ? $metrics['mean_score'] . '%' : 'No data' }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -204,15 +205,15 @@
         <table class="print-table" style="font-size: 11px; margin-top: 10px;">
             <tr>
                 <td><strong>Overall Pass Rate</strong></td>
-                <td>{{ $overall['pass_rate'] }}%</td>
+                <td>{{ $overall['total_students'] > 0 ? $overall['pass_rate'] . '%' : 'No data' }}</td>
                 <td><strong>Overall Failure Rate</strong></td>
-                <td>{{ $overall['failure_rate'] }}%</td>
+                <td>{{ $overall['total_students'] > 0 ? $overall['failure_rate'] . '%' : 'No data' }}</td>
             </tr>
             <tr>
                 <td><strong>Total Failed Students</strong></td>
                 <td>{{ $overall['failed_students'] }}</td>
                 <td><strong>Mean Score</strong></td>
-                <td>{{ $overall['mean_score'] }}%</td>
+                <td>{{ $overall['total_students'] > 0 ? $overall['mean_score'] . '%' : 'No data' }}</td>
             </tr>
         </table>
     </div>

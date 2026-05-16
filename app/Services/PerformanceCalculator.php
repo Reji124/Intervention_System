@@ -109,7 +109,7 @@ class PerformanceCalculator
         });
 
         $passRate = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
-        $failureRate = 100 - $passRate;
+        $failureRate = $totalResults > 0 ? 100 - $passRate : 0;
         $meanScore = $totalResults > 0 ? round($totalScore / $totalResults, 2) : 0;
 
         return [
@@ -153,13 +153,14 @@ class PerformanceCalculator
             });
 
             $passRate = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
-            $riskLevel = AnalyticsService::getRiskLevel($passRate);
+            $riskLevel = AnalyticsService::getRiskLevel($passRate, $totalResults);
 
             return [
                 'subject_id' => $ts->subject->id,
                 'subject_name' => $ts->subject->subject_name,
                 'subject_code' => $ts->subject->subject_code,
                 'total_students' => $ts->students->count(),
+                'total_results' => $totalResults,
                 'pass_rate' => $passRate,
                 'failed_students' => $failCount,
                 'intervention_count' => $interventionCount,
@@ -231,11 +232,12 @@ class PerformanceCalculator
                     });
 
                     $subjectPassRate = $subjectTotal > 0 ? (int) round(($subjectPass / $subjectTotal) * 100) : 0;
-                    $riskLevel = AnalyticsService::getRiskLevel($subjectPassRate);
+                    $riskLevel = AnalyticsService::getRiskLevel($subjectPassRate, $subjectTotal);
 
                     $subjectMetrics[$subject->id] = [
                         'subject_name' => $subject->subject_name,
                         'pass_rate' => $subjectPassRate,
+                        'total_results' => $subjectTotal,
                         'risk_level' => $riskLevel['level'],
                     ];
                 });
@@ -248,7 +250,10 @@ class PerformanceCalculator
             'pass_rate' => $passRate,
             'total_teachers' => count($teacherIds),
             'total_students' => $totalResults,
-            'highest_risk_subject' => collect($subjectMetrics)->sortBy('pass_rate')->first(),
+            'highest_risk_subject' => collect($subjectMetrics)
+                ->filter(fn ($subject) => ($subject['total_results'] ?? 0) > 0)
+                ->sortBy('pass_rate')
+                ->first(),
             'top_performing_teacher' => null, // Will be filled by caller
         ];
     }

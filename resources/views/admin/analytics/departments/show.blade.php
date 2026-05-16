@@ -126,6 +126,11 @@
         color: var(--red);
     }
 
+    .risk-badge.none {
+        background: #eef0f3;
+        color: var(--text-soft);
+    }
+
     .export-btn {
         padding: 8px 16px;
         font-size: 12px;
@@ -174,7 +179,7 @@
         <div class="summary-grid">
             <div class="summary-item">
                 <div class="summary-label">Pass Rate</div>
-                <div class="summary-value">{{ $metrics['pass_rate'] }}%</div>
+                <div class="summary-value">{{ $metrics['total_students'] > 0 ? $metrics['pass_rate'] . '%' : 'No data' }}</div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Teachers</div>
@@ -213,11 +218,12 @@
             </thead>
             <tbody>
                 @forelse($teachers as $rank => $teacher)
+                @php($hasData = $teacher['total_students'] > 0)
                 <tr>
                     <td style="font-weight: 600;">{{ $rank + 1 }}</td>
                     <td style="font-weight: 500;">{{ $teacher['name'] }}</td>
                     <td>{{ $teacher['code'] ?? 'N/A' }}</td>
-                    <td style="font-weight: 600; color: var(--text-dark);">{{ $teacher['pass_rate'] }}%</td>
+                    <td style="font-weight: 600; color: var(--text-dark);">{{ $hasData ? $teacher['pass_rate'] . '%' : 'No data' }}</td>
                     <td>{{ $teacher['failed_students'] }}</td>
                     <td>{{ $teacher['total_students'] }}</td>
                     <td>
