@@ -7,6 +7,57 @@
 @section('analytics-content')
 
 <style>
+    .pagination-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+
+    .pagination-wrapper nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Constrain the SVG prev/next arrows */
+    .pagination-wrapper svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .pagination-wrapper span,
+    .pagination-wrapper a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        font-size: 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        color: var(--text-mid);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .pagination-wrapper a:hover {
+        background: var(--gold-dim);
+        border-color: var(--gold);
+        color: var(--gold);
+    }
+
+    .pagination-wrapper span[aria-current="page"] {
+        background: var(--navy);
+        color: white;
+        border-color: var(--navy);
+        font-weight: 600;
+    }
+
+    .pagination-wrapper span[aria-disabled="true"] {
+        opacity: 0.4;
+        cursor: default;
+    }
+
     .filter-bar {
         background: var(--card-bg);
         border: 1px solid var(--border);
@@ -202,7 +253,9 @@
 
 @if($teachers->hasPages())
 <div style="margin-top: 20px;">
-    {{ $teachers->links() }}
+    <div class="pagination-wrapper">
+        {{ $teachers->links() }}
+    </div>
 </div>
 @endif
 
