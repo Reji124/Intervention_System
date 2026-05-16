@@ -85,6 +85,11 @@ class TeacherAnalyticsController extends Controller
      */
     public function show(Teacher $teacher)
     {
+        // DEBUG - add this temporarily
+        $teacher->load('teacherSubjects.exams.examResults');
+        \Log::info('TeacherSubjects count: ' . $teacher->teacherSubjects->count());
+        \Log::info('Exams sample: ', $teacher->teacherSubjects->first()?->exams?->take(2)?->toArray() ?? []);
+        // END DEBUG
         $summary = $this->performanceCalculator->getTeacherPerformanceSummary($teacher);
         $overall = $this->performanceCalculator->getTeacherOverallMetrics($teacher);
         $subjectBreakdown = $this->performanceCalculator->getTeacherSubjectBreakdown($teacher);
