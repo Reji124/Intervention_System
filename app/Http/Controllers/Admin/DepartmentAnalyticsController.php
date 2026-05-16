@@ -66,7 +66,7 @@ class DepartmentAnalyticsController extends Controller
 
         // Get all teachers in department
         $courses = $department->courses()
-            ->with('subjects.teacherSubjects.teacher.exams.examResults')
+            ->with('subjects.teacherSubjects.exams.examResults')
             ->get();
 
         $teachers = $courses->flatMap(function ($course) {

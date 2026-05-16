@@ -224,11 +224,11 @@ class ExportService
     private function getCurrentSemesterCode(): string
     {
         $semester = \App\Models\Semester::where('is_active', true)->first();
-        if (!$semester) {
+        if (!$semester || !$semester->schoolYear) {
             return date('YmdHis');
         }
 
-        $year = $semester->school_year->year_start;
+        $year = $semester->schoolYear->year_start;
         $sem = str_replace(' ', '', $semester->semester_name);
 
         return "{$year}_{$sem}";
