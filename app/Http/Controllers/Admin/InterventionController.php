@@ -12,6 +12,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherNote;
 use App\Models\TeacherSubject;
+use App\Services\AnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -238,6 +239,8 @@ class InterventionController extends Controller
             'remark'     => $remark,
         ]);
 
+        $this->clearAnalyticsCache();
+
         return response()->json([
             'success'         => true,
             'raw_score'       => $rawScore,
@@ -250,6 +253,8 @@ class InterventionController extends Controller
     public function destroyResult(ExamResult $examResult)
     {
         $examResult->delete();
+        $this->clearAnalyticsCache();
+
         return response()->json(['success' => true]);
     }
 
@@ -257,6 +262,8 @@ class InterventionController extends Controller
     {
         $exam->examResults()->delete();
         $exam->delete();
+        $this->clearAnalyticsCache();
+
         return response()->json(['success' => true]);
     }
 
@@ -381,6 +388,8 @@ class InterventionController extends Controller
                 Exam::whereIn('id', $examIds)->delete();
             });
 
+            $this->clearAnalyticsCache();
+
             return response()->json([
                 'success'         => true,
                 'deleted_exams'   => $examIds->count(),
@@ -459,5 +468,10 @@ class InterventionController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function clearAnalyticsCache(): void
+    {
+        app(AnalyticsService::class)->clearCache();
     }
 }

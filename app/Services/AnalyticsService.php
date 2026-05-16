@@ -19,6 +19,17 @@ use Illuminate\Support\Facades\Cache;
  */
 class AnalyticsService
 {
+    private const CACHE_KEYS = [
+        'analytics.overall_pass_rate',
+        'analytics.total_failed_students',
+        'analytics.highest_performing_department',
+        'analytics.lowest_performing_department',
+        'analytics.highest_risk_subject',
+        'analytics.highest_risk_teacher',
+        'analytics.most_difficult_exam_type',
+        'analytics.intervention_success_rate',
+    ];
+
     // Risk thresholds
     private const RISK_HIGH = 70;      // < 70% = high risk (red)
     private const RISK_MODERATE = 85;  // 70-84% = moderate risk (yellow)
@@ -84,8 +95,11 @@ class AnalyticsService
                     'id' => $dept->id,
                     'name' => $dept->department_name,
                     'pass_rate' => $passRate,
+                    'total_results' => $totalResults,
                 ];
-            })->sortByDesc('pass_rate')->first();
+            })->filter(fn ($dept) => $dept['total_results'] > 0)
+                ->sortByDesc('pass_rate')
+                ->first();
 
             return $deptMetrics;
         });
@@ -123,8 +137,11 @@ class AnalyticsService
                     'id' => $dept->id,
                     'name' => $dept->department_name,
                     'pass_rate' => $passRate,
+                    'total_results' => $totalResults,
                 ];
-            })->sortBy('pass_rate')->first();
+            })->filter(fn ($dept) => $dept['total_results'] > 0)
+                ->sortBy('pass_rate')
+                ->first();
 
             return $deptMetrics;
         });
@@ -158,8 +175,11 @@ class AnalyticsService
                     'name' => $subject->subject_name,
                     'code' => $subject->subject_code,
                     'pass_rate' => $passRate,
+                    'total_results' => $totalResults,
                 ];
-            })->sortBy('pass_rate')->first();
+            })->filter(fn ($subject) => $subject['total_results'] > 0)
+                ->sortBy('pass_rate')
+                ->first();
 
             return $subjectMetrics;
         });
@@ -193,8 +213,11 @@ class AnalyticsService
                     'name' => $teacher->teacher_name,
                     'code' => $teacher->teacher_code,
                     'pass_rate' => $passRate,
+                    'total_results' => $totalResults,
                 ];
-            })->sortBy('pass_rate')->first();
+            })->filter(fn ($teacher) => $teacher['total_results'] > 0)
+                ->sortBy('pass_rate')
+                ->first();
 
             return $teacherMetrics;
         });
@@ -230,7 +253,9 @@ class AnalyticsService
                     'pass_rate' => $passRate,
                     'total_results' => $totalResults,
                 ];
-            })->sortBy('pass_rate')->first();
+            })->filter(fn ($examType) => $examType['total_results'] > 0)
+                ->sortBy('pass_rate')
+                ->first();
 
             return $metrics;
         });
@@ -245,8 +270,8 @@ class AnalyticsService
         
         return Cache::remember($cacheKey, 3600, function () {
             // Simplified: calculate as overall pass rate of final exams vs prelim
-            $prelimExams = Exam::where('exam_type', 'Prelim')->with('examResults')->get();
-            $finalExams = Exam::where('exam_type', 'Final')->with('examResults')->get();
+            $prelimExams = Exam::where('exam_type', 'prelim')->with('examResults')->get();
+            $finalExams = Exam::where('exam_type', 'final')->with('examResults')->get();
 
             $prelimTotal = 0;
             $prelimPass = 0;
@@ -276,14 +301,9 @@ class AnalyticsService
      */
     public function clearCache(): void
     {
-        Cache::forget('analytics.overall_pass_rate');
-        Cache::forget('analytics.total_failed_students');
-        Cache::forget('analytics.highest_performing_department');
-        Cache::forget('analytics.lowest_performing_department');
-        Cache::forget('analytics.highest_risk_subject');
-        Cache::forget('analytics.highest_risk_teacher');
-        Cache::forget('analytics.most_difficult_exam_type');
-        Cache::forget('analytics.intervention_success_rate');
+        foreach (self::CACHE_KEYS as $key) {
+            Cache::forget($key);
+        }
     }
 
     /**

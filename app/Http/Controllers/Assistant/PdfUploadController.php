@@ -10,6 +10,7 @@ use App\Models\ExamResult;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\TeacherSubject;
+use App\Services\AnalyticsService;
 use App\Services\ItemMatrixParser;
 use App\Services\MasterListParser;
 use Illuminate\Http\Request;
@@ -279,6 +280,8 @@ class PdfUploadController extends Controller
                 $saved++;
             }
         });
+
+        app(AnalyticsService::class)->clearCache();
 
         session()->flash('success',
             "Saved {$saved} student result(s)." .

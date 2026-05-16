@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamResult;
 use App\Models\Semester;
 use App\Models\TeacherSubject;
+use App\Services\AnalyticsService;
 use Illuminate\Http\Request;
 
 class InterventionController extends Controller
@@ -102,6 +103,8 @@ class InterventionController extends Controller
             'remark'     => $remark,
         ]);
 
+        $this->clearAnalyticsCache();
+
         return response()->json([
             'success'    => true,
             'raw_score'  => $rawScore,
@@ -113,6 +116,13 @@ class InterventionController extends Controller
     public function destroyResult(ExamResult $examResult)
     {
         $examResult->delete();
+        $this->clearAnalyticsCache();
+
         return response()->json(['success' => true]);
+    }
+
+    private function clearAnalyticsCache(): void
+    {
+        app(AnalyticsService::class)->clearCache();
     }
 }
