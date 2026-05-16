@@ -7,55 +7,62 @@
 @section('analytics-content')
 
 <style>
+
     .pagination-wrapper {
         display: flex;
         justify-content: center;
+        margin-top: 24px;
+        padding-bottom: 8px;
     }
 
-    .pagination-wrapper nav {
+    .custom-pagination {
         display: flex;
         align-items: center;
         gap: 4px;
     }
 
-    /* Constrain the SVG prev/next arrows */
-    .pagination-wrapper svg {
-        width: 14px;
-        height: 14px;
-    }
-
-    .pagination-wrapper span,
-    .pagination-wrapper a {
+    .page-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         min-width: 32px;
         height: 32px;
-        padding: 0 8px;
+        padding: 0 10px;
         font-size: 12px;
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 500;
         border-radius: 6px;
         border: 1px solid var(--border);
         color: var(--text-mid);
         text-decoration: none;
         transition: all 0.2s;
+        background: var(--card-bg);
+        cursor: pointer;
     }
 
-    .pagination-wrapper a:hover {
+    .page-btn:hover:not(.disabled):not(.dots):not(.active) {
         background: var(--gold-dim);
         border-color: var(--gold);
         color: var(--gold);
     }
 
-    .pagination-wrapper span[aria-current="page"] {
+    .page-btn.active {
         background: var(--navy);
         color: white;
         border-color: var(--navy);
         font-weight: 600;
     }
 
-    .pagination-wrapper span[aria-disabled="true"] {
-        opacity: 0.4;
+    .page-btn.disabled {
+        opacity: 0.35;
         cursor: default;
+    }
+
+    .page-btn.dots {
+        border: none;
+        background: transparent;
+        cursor: default;
+        color: var(--text-soft);
     }
 
     .filter-bar {
@@ -252,10 +259,9 @@
 </table>
 
 @if($teachers->hasPages())
-<div style="margin-top: 20px;">
-    <div class="pagination-wrapper">
-        {{ $teachers->links() }}
-    </div>
+<div class="pagination-wrapper">
+    {{-- Hide the default links() and use a custom render --}}
+    {{ $teachers->links('components.pagination') }}
 </div>
 @endif
 
