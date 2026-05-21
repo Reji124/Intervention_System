@@ -240,7 +240,7 @@ class PerformanceCalculator
         $coursesQuery = $department->courses();
         
         if ($semester) {
-            $coursesQuery->with(['subjects.teacherSubjects' => function ($q) {
+            $coursesQuery->with(['subjects.teacherSubjects' => function ($q) use ($semester) {
                 $q->where('semester_id', $semester->id);
             }, 'subjects.teacherSubjects.exams.examResults']);
         } else {
