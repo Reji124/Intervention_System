@@ -83,27 +83,45 @@ class DepartmentAnalyticsController extends Controller
             ->flatMap(fn($course) => $course->subjects)
             ->flatMap(fn($subject) => $subject->teacherSubjects);
 
-        // Get unique teachers and calculate metrics
+        // Get unique teachers and calculate metrics (only from department subjects)
         $teachersData = $teacherSubjects
             ->groupBy('teacher_id')
-            ->map(function ($tsList) use ($selectedSemester) {
+            ->map(function ($tsList) {
                 $teacher = $tsList->first()->teacher;
-                $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher, $selectedSemester);
-                $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
-                    $metrics['pass_rate'],
-                    $metrics['total_students']
-                );
+                $remarkCalc = new \App\Services\RemarkCalculator();
+
+                // Calculate metrics only from department's subjects
+                $totalResults = 0;
+                $passCount = 0;
+                $failedCount = 0;
+                
+                $tsList->each(function ($ts) use (&$totalResults, &$passCount, &$failedCount) {
+                    $ts->exams->each(function ($exam) use (&$totalResults, &$passCount, &$failedCount) {
+                        $exam->examResults->each(function ($result) use (&$totalResults, &$passCount, &$failedCount) {
+                            $totalResults++;
+                            if ($result->is_passed) {
+                                $passCount++;
+                            } else {
+                                $failedCount++;
+                            }
+                        });
+                    });
+                });
+
+                $passRate = $totalResults > 0 ? round(($passCount / $totalResults) * 100, 1) : 0;
+                $remark = $remarkCalc->getRemarkLabel($passRate);
+                $remarkClass = $remarkCalc->getBadgeClass($passRate);
 
                 return [
                     'id' => $teacher->id,
                     'name' => $teacher->teacher_name,
                     'code' => $teacher->teacher_code,
-                    'pass_rate' => $metrics['pass_rate'],
-                    'remark' => $metrics['remark'],
-                    'failed_students' => $metrics['failed_students'],
-                    'total_students' => $metrics['total_students'],
-                    'risk_level' => $metrics['remark_class'],
-                    'risk_label' => $metrics['remark'],
+                    'pass_rate' => $passRate,
+                    'remark' => $remark,
+                    'failed_students' => $failedCount,
+                    'total_students' => $totalResults,
+                    'risk_level' => $remarkClass,
+                    'risk_label' => $remark,
                 ];
             })
             ->sortByDesc('pass_rate')
