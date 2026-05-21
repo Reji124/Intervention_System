@@ -24,7 +24,7 @@ class ExamTypeFactorAnalysisService
         $teacherSubjects = $teacher->teacherSubjects();
         
         if ($semester) {
-            $teacherSubjects->where('semester_id', $semester->id);
+            $teacherSubjects = $teacherSubjects->where('semester_id', $semester->id);
         }
         
         $teacherSubjects = $teacherSubjects->with('exams.examResults')->get();
@@ -100,7 +100,7 @@ class ExamTypeFactorAnalysisService
         $teacherSubjects = $teacher->teacherSubjects();
         
         if ($semester) {
-            $teacherSubjects->where('semester_id', $semester->id);
+            $teacherSubjects = $teacherSubjects->where('semester_id', $semester->id);
         }
         
         $teacherSubjects = $teacherSubjects->with('exams.examResults')->get();
