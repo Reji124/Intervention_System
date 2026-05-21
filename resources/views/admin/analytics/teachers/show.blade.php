@@ -403,7 +403,7 @@
             <tbody>
                 @foreach($summary as $examType => $metrics)
                 @php($hasExamData = $metrics['total_students'] > 0)
-                <tr>
+                <tr onclick="showExamTypeFactorAnalysis('{{ $examType }}', {{ json_encode($summary[$examType]) }})" style="cursor: pointer;">
                     <td style="font-weight: 600;">{{ $examType }}</td>
                     <td>{{ $hasExamData ? $metrics['pass_rate'] . '%' : 'No data' }}</td>
                     <td>{{ $metrics['failed_students'] }}</td>
@@ -420,7 +420,8 @@
             </tbody>
         </table>
 
-        <div class="info-grid">
+        {{-- Overall Factor Analysis --}}
+        <div class="info-grid" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
             <div class="info-item">
                 <div class="info-label">Overall Pass Rate</div>
                 <div class="info-value">{{ $overall['total_students'] > 0 ? $overall['pass_rate'] . '%' : 'No data' }}</div>
@@ -438,6 +439,44 @@
             <div class="info-item">
                 <div class="info-label">Mean Score</div>
                 <div class="info-value">{{ $overall['mean_score'] }}%</div>
+            </div>
+        </div>
+
+        {{-- Overall Factor Analysis Display --}}
+        <div style="margin-top: 20px; padding: 16px; background: #faf8f5; border-radius: 8px; border: 1px solid var(--border);">
+            <h4 style="margin-top: 0; font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--text-dark);">Overall Teaching Performance Factors</h4>
+            
+            <div class="factor-item">
+                <div class="factor-label">
+                    <span>Exam Quality</span>
+                    <span>{{ round($overallFactorAnalysis['exam_factor']) }}%</span>
+                </div>
+                <div class="factor-bar">
+                    <div class="factor-fill" style="width: {{ round($overallFactorAnalysis['exam_factor']) }}%;"></div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-mid);">{{ $overallFactorAnalysis['summaries']['exam_factor'] }}</div>
+            </div>
+
+            <div class="factor-item">
+                <div class="factor-label">
+                    <span>Teaching Consistency</span>
+                    <span>{{ round($overallFactorAnalysis['teacher_factor']) }}%</span>
+                </div>
+                <div class="factor-bar">
+                    <div class="factor-fill" style="width: {{ round($overallFactorAnalysis['teacher_factor']) }}%;"></div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-mid);">{{ $overallFactorAnalysis['summaries']['teacher_factor'] }}</div>
+            </div>
+
+            <div class="factor-item">
+                <div class="factor-label">
+                    <span>Student Performance</span>
+                    <span>{{ round($overallFactorAnalysis['student_factor']) }}%</span>
+                </div>
+                <div class="factor-bar">
+                    <div class="factor-fill" style="width: {{ round($overallFactorAnalysis['student_factor']) }}%;"></div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-mid);">{{ $overallFactorAnalysis['summaries']['student_factor'] }}</div>
             </div>
         </div>
     </div>
@@ -593,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-{{-- Factor Analysis Modal --}}
+{{-- Factor Analysis Modals --}}
 <div class="factor-analysis-modal" id="factorModal">
     <div class="factor-modal-content">
         <div class="factor-modal-header">
@@ -660,6 +699,77 @@ function showFactorAnalysis(subjectId, subjectName) {
                     <div class="factor-summary">
                         <strong>Analysis Summary:</strong><br>
                         ${data.summaries.join('<br><br>')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        body.innerHTML = html;
+    })
+    .catch(error => {
+        body.innerHTML = '<p style="color: var(--text-soft);">Error loading analysis. Please try again.</p>';
+        console.error('Error:', error);
+    });
+    
+    modal.classList.add('show');
+}
+
+function showExamTypeFactorAnalysis(examType, examMetrics) {
+    const modal = document.getElementById('factorModal');
+    const body = document.getElementById('factorModalBody');
+    
+    // Fetch factor analysis via AJAX
+    fetch('{{ route("admin.analytics.teachers.exam-type-factor-analysis", $teacher) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ exam_type: examType })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let html = `
+            <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 16px; margin: 0 0 16px 0; color: var(--text-dark);">${examType} Exam - Factor Analysis</h3>
+                <p style="font-size: 12px; color: var(--text-soft); margin: 0 0 16px 0;">Pass Rate: ${examMetrics.pass_rate}% | Students: ${examMetrics.total_students}</p>
+                
+                <div class="factor-item">
+                    <div class="factor-label">
+                        Exam Quality
+                        <span style="font-weight: normal; font-size: 13px;">${Math.round(data.exam_factor)}%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: ${Math.round(data.exam_factor)}%"></div>
+                    </div>
+                </div>
+                
+                <div class="factor-item">
+                    <div class="factor-label">
+                        Teaching Consistency
+                        <span style="font-weight: normal; font-size: 13px;">${Math.round(data.teacher_factor)}%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: ${Math.round(data.teacher_factor)}%"></div>
+                    </div>
+                </div>
+                
+                <div class="factor-item">
+                    <div class="factor-label">
+                        Student Performance
+                        <span style="font-weight: normal; font-size: 13px;">${Math.round(data.student_factor)}%</span>
+                    </div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: ${Math.round(data.student_factor)}%"></div>
+                    </div>
+                </div>
+                
+                ${data.summaries ? `
+                    <div style="margin-top: 16px; padding: 12px; background: #faf8f5; border-radius: 6px; border-left: 3px solid var(--gold);">
+                        <div style="font-size: 12px; color: var(--text-mid); line-height: 1.6;">
+                            <strong style="color: var(--text-dark);">Exam Quality:</strong> ${data.summaries.exam_factor}<br><br>
+                            <strong style="color: var(--text-dark);">Teaching Consistency:</strong> ${data.summaries.teacher_factor}<br><br>
+                            <strong style="color: var(--text-dark);">Student Performance:</strong> ${data.summaries.student_factor}
+                        </div>
                     </div>
                 ` : ''}
             </div>

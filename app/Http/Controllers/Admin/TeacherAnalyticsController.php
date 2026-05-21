@@ -13,6 +13,7 @@ use App\Services\ExportService;
 use App\Services\AnalyticsSessionService;
 use App\Services\SubjectFactorAnalysisService;
 use App\Services\YearOverYearComparisonService;
+use App\Services\ExamTypeFactorAnalysisService;
 use Illuminate\Http\Request;
 
 /**
@@ -30,7 +31,8 @@ class TeacherAnalyticsController extends Controller
         private ExportService $exportService,
         private AnalyticsSessionService $sessionService,
         private SubjectFactorAnalysisService $subjectFactorAnalysis,
-        private YearOverYearComparisonService $yoyComparison
+        private YearOverYearComparisonService $yoyComparison,
+        private ExamTypeFactorAnalysisService $examTypeFactorAnalysis
     ) {}
 
     /**
@@ -110,6 +112,9 @@ class TeacherAnalyticsController extends Controller
         
         // YoY comparison data
         $yoyData = $this->yoyComparison->getTeacherComparison($teacher, $selectedSemester);
+        
+        // Overall factor analysis
+        $overallFactorAnalysis = $this->examTypeFactorAnalysis->analyzeOverallPerformance($teacher, $selectedSemester);
 
         return view('admin.analytics.teachers.show', [
             'teacher' => $teacher,
@@ -118,6 +123,7 @@ class TeacherAnalyticsController extends Controller
             'subjectBreakdown' => $subjectBreakdown,
             'narrative' => $narrative,
             'yoyData' => $yoyData,
+            'overallFactorAnalysis' => $overallFactorAnalysis,
             'currentSemester' => $selectedSemester,
             'activeTab' => 'teachers',
         ]);
@@ -139,6 +145,28 @@ class TeacherAnalyticsController extends Controller
         $analysis = $this->subjectFactorAnalysis->analyzeSubjectPerformance(
             $teacher,
             $subject,
+            $selectedSemester
+        );
+
+        return response()->json($analysis);
+    }
+
+    /**
+     * Get factor analysis for a specific exam type.
+     * Used via AJAX for modal display.
+     */
+    public function getExamTypeFactorAnalysis(Request $request, Teacher $teacher)
+    {
+        $request->validate([
+            'exam_type' => 'required|string',
+        ]);
+
+        $selectedSemester = $this->sessionService->getSelectedSemester();
+        $examType = $request->exam_type;
+
+        $analysis = $this->examTypeFactorAnalysis->analyzeExamTypePerformance(
+            $teacher,
+            $examType,
             $selectedSemester
         );
 
