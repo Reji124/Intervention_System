@@ -169,23 +169,25 @@ class ExamTypeFactorAnalysisService
 
         foreach ($itemMatrixDataList as $itemData) {
             $legend = $itemData['legend'] ?? [];
-            $rejectCount = $legend['reject'] ?? 0;
-            $revisionCount = $legend['needs_revision'] ?? 0;
-            $acceptableCount = $legend['acceptable'] ?? 0;
+            
+            // Handle both array and integer values from legend
+            $rejectCount = is_array($legend['reject'] ?? null) ? count($legend['reject']) : (int)($legend['reject'] ?? 0);
+            $revisionCount = is_array($legend['needs_revision'] ?? null) ? count($legend['needs_revision']) : (int)($legend['needs_revision'] ?? 0);
+            $acceptableCount = is_array($legend['acceptable'] ?? null) ? count($legend['acceptable']) : (int)($legend['acceptable'] ?? 0);
 
             $total = $rejectCount + $revisionCount + $acceptableCount;
             if ($total === 0) {
                 continue;
             }
 
-            $rejectRatio = $rejectCount / $total;
+            $rejectRatio = (float)$rejectCount / $total;
             
             // Quality score: higher acceptable ratio = better quality
             if ($rejectRatio > 0.4) {
                 $qualityScores[] = 10; // Poor quality
             } elseif ($rejectRatio > 0.2) {
                 $qualityScores[] = 20; // Fair quality
-            } elseif ($revisionCount / $total > 0.3) {
+            } elseif ((float)$revisionCount / $total > 0.3) {
                 $qualityScores[] = 30; // Needs work
             } else {
                 $qualityScores[] = 40; // Good quality
@@ -201,6 +203,9 @@ class ExamTypeFactorAnalysisService
             return 25;
         }
 
+        // Ensure all values are numeric
+        $passRates = array_map(fn($x) => (float)$x, $passRates);
+        
         $mean = array_sum($passRates) / count($passRates);
         $variance = array_sum(array_map(fn($x) => pow($x - $mean, 2), $passRates)) / count($passRates);
         $stdDev = sqrt($variance);
@@ -220,6 +225,8 @@ class ExamTypeFactorAnalysisService
     private function calculateStudentPerformanceFactor(float $passRate): float
     {
         // Direct mapping: higher pass rate = better student performance
+        $passRate = (float)$passRate;
+        
         if ($passRate >= 85) {
             return 40; // Excellent
         } elseif ($passRate >= 70) {
