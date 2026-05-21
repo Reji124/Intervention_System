@@ -83,45 +83,31 @@ class DepartmentAnalyticsController extends Controller
             ->flatMap(fn($course) => $course->subjects)
             ->flatMap(fn($subject) => $subject->teacherSubjects);
 
-        // Get unique teachers and calculate metrics (only from department subjects)
+        // Get unique teachers and calculate metrics
         $teachersData = $teacherSubjects
             ->groupBy('teacher_id')
-            ->map(function ($tsList) {
+            ->filter(function ($tsList) {
+                // Only include teachers with exam results
+                return $tsList->flatMap(fn($ts) => $ts->exams)->flatMap(fn($exam) => $exam->examResults)->count() > 0;
+            })
+            ->map(function ($tsList) use ($selectedSemester) {
                 $teacher = $tsList->first()->teacher;
-                $remarkCalc = new \App\Services\RemarkCalculator();
-
-                // Calculate metrics only from department's subjects
-                $totalResults = 0;
-                $passCount = 0;
-                $failedCount = 0;
-                
-                $tsList->each(function ($ts) use (&$totalResults, &$passCount, &$failedCount) {
-                    $ts->exams->each(function ($exam) use (&$totalResults, &$passCount, &$failedCount) {
-                        $exam->examResults->each(function ($result) use (&$totalResults, &$passCount, &$failedCount) {
-                            $totalResults++;
-                            if ($result->is_passed) {
-                                $passCount++;
-                            } else {
-                                $failedCount++;
-                            }
-                        });
-                    });
-                });
-
-                $passRate = $totalResults > 0 ? round(($passCount / $totalResults) * 100, 1) : 0;
-                $remark = $remarkCalc->getRemarkLabel($passRate);
-                $remarkClass = $remarkCalc->getBadgeClass($passRate);
+                $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher, $selectedSemester);
+                $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
+                    $metrics['pass_rate'],
+                    $metrics['total_students']
+                );
 
                 return [
                     'id' => $teacher->id,
                     'name' => $teacher->teacher_name,
                     'code' => $teacher->teacher_code,
-                    'pass_rate' => $passRate,
-                    'remark' => $remark,
-                    'failed_students' => $failedCount,
-                    'total_students' => $totalResults,
-                    'risk_level' => $remarkClass,
-                    'risk_label' => $remark,
+                    'pass_rate' => $metrics['pass_rate'],
+                    'remark' => $metrics['remark'],
+                    'failed_students' => $metrics['failed_students'],
+                    'total_students' => $metrics['total_students'],
+                    'risk_level' => $metrics['remark_class'],
+                    'risk_label' => $metrics['remark'],
                 ];
             })
             ->sortByDesc('pass_rate')
