@@ -10,6 +10,9 @@ use App\Services\PerformanceCalculator;
 use App\Services\FactorAnalysisService;
 use App\Services\ReportGenerator;
 use App\Services\ExportService;
+use App\Services\AnalyticsSessionService;
+use App\Services\SubjectFactorAnalysisService;
+use App\Services\YearOverYearComparisonService;
 use Illuminate\Http\Request;
 
 /**
@@ -24,7 +27,10 @@ class TeacherAnalyticsController extends Controller
         private PerformanceCalculator $performanceCalculator,
         private FactorAnalysisService $factorAnalysisService,
         private ReportGenerator $reportGenerator,
-        private ExportService $exportService
+        private ExportService $exportService,
+        private AnalyticsSessionService $sessionService,
+        private SubjectFactorAnalysisService $subjectFactorAnalysis,
+        private YearOverYearComparisonService $yoyComparison
     ) {}
 
     /**
@@ -32,7 +38,15 @@ class TeacherAnalyticsController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Teacher::with('teacherSubjects.exams.examResults', 'teacherSubjects.subject.departments');
+        $selectedSemester = $this->sessionService->getSelectedSemester();
+
+        $query = Teacher::with([
+            'teacherSubjects' => function ($q) use ($selectedSemester) {
+                $q->where('semester_id', $selectedSemester->id);
+            },
+            'teacherSubjects.exams.examResults',
+            'teacherSubjects.subject.departments'
+        ]);
 
         // Filters
         if ($request->filled('department_id')) {
@@ -52,8 +66,8 @@ class TeacherAnalyticsController extends Controller
         $teachers = $query->paginate(15);
 
         // Compute metrics for each teacher
-        $teachers->getCollection()->transform(function ($teacher) {
-            $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher);
+        $teachers->getCollection()->transform(function ($teacher) use ($selectedSemester) {
+            $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher, $selectedSemester);
             $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
                 $metrics['pass_rate'],
                 $metrics['total_students']
@@ -72,12 +86,11 @@ class TeacherAnalyticsController extends Controller
         });
 
         $departments = Department::all();
-        $currentSemester = Semester::where('is_active', true)->first();
 
         return view('admin.analytics.teachers.index', [
             'teachers' => $teachers,
             'departments' => $departments,
-            'currentSemester' => $currentSemester,
+            'currentSemester' => $selectedSemester,
             'filters' => $request->all(),
             'activeTab' => 'teachers',
         ]);
@@ -88,21 +101,48 @@ class TeacherAnalyticsController extends Controller
      */
     public function show(Teacher $teacher)
     {
-        $summary = $this->performanceCalculator->getTeacherPerformanceSummary($teacher);
-        $overall = $this->performanceCalculator->getTeacherOverallMetrics($teacher);
-        $subjectBreakdown = $this->performanceCalculator->getTeacherSubjectBreakdown($teacher);
-        $analysis = $this->factorAnalysisService->getAnalysisSummary($teacher);
-        $narrative = $this->reportGenerator->generateTeacherNarrative($teacher);
+        $selectedSemester = $this->sessionService->getSelectedSemester();
+
+        $summary = $this->performanceCalculator->getTeacherPerformanceSummary($teacher, $selectedSemester);
+        $overall = $this->performanceCalculator->getTeacherOverallMetrics($teacher, $selectedSemester);
+        $subjectBreakdown = $this->performanceCalculator->getTeacherSubjectBreakdown($teacher, $selectedSemester);
+        $narrative = $this->reportGenerator->generateTeacherNarrative($teacher, $selectedSemester);
+        
+        // YoY comparison data
+        $yoyData = $this->yoyComparison->getTeacherComparison($teacher, $selectedSemester);
 
         return view('admin.analytics.teachers.show', [
             'teacher' => $teacher,
             'summary' => $summary,
             'overall' => $overall,
             'subjectBreakdown' => $subjectBreakdown,
-            'analysis' => $analysis,
             'narrative' => $narrative,
+            'yoyData' => $yoyData,
+            'currentSemester' => $selectedSemester,
             'activeTab' => 'teachers',
         ]);
+    }
+
+    /**
+     * Get factor analysis for a specific subject.
+     * Used via AJAX for modal display.
+     */
+    public function getSubjectFactorAnalysis(Request $request, Teacher $teacher)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $selectedSemester = $this->sessionService->getSelectedSemester();
+        $subject = \App\Models\Subject::findOrFail($request->subject_id);
+
+        $analysis = $this->subjectFactorAnalysis->analyzeSubjectPerformance(
+            $teacher,
+            $subject,
+            $selectedSemester
+        );
+
+        return response()->json($analysis);
     }
 
     /**
@@ -111,11 +151,12 @@ class TeacherAnalyticsController extends Controller
     public function export(Request $request, Teacher $teacher)
     {
         $format = $request->get('format', 'pdf');
+        $selectedSemester = $this->sessionService->getSelectedSemester();
 
         return match ($format) {
-            'pdf' => $this->exportService->exportTeacherPDF($teacher),
-            'csv' => $this->exportService->exportTeacherCSV($teacher),
-            'print' => $this->exportService->getPrintableTeacherReport($teacher),
+            'pdf' => $this->exportService->exportTeacherPDF($teacher, $selectedSemester),
+            'csv' => $this->exportService->exportTeacherCSV($teacher, $selectedSemester),
+            'print' => $this->exportService->getPrintableTeacherReport($teacher, $selectedSemester),
             default => back()->with('error', 'Invalid export format.'),
         };
     }

@@ -111,6 +111,44 @@
         font-weight: 600;
     }
 
+    .remark-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .remark-badge.excellent {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .remark-badge.very-good {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .remark-badge.good {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
+    .remark-badge.fair {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .remark-badge.poor {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .remark-badge.very-poor {
+        background: #fad2e1;
+        color: #c0392b;
+    }
+
     .risk-badge.low {
         background: var(--green-bg);
         color: var(--green);
@@ -182,6 +220,14 @@
                 <div class="summary-value">{{ $metrics['total_students'] > 0 ? $metrics['pass_rate'] . '%' : 'No data' }}</div>
             </div>
             <div class="summary-item">
+                <div class="summary-label">Remark</div>
+                <div style="margin-top: 4px;">
+                    <span class="remark-badge {{ str_replace(' ', '-', strtolower($metrics['remark'])) }}">
+                        {{ $metrics['remark'] }}
+                    </span>
+                </div>
+            </div>
+            <div class="summary-item">
                 <div class="summary-label">Teachers</div>
                 <div class="summary-value">{{ $metrics['total_teachers'] }}</div>
             </div>
@@ -212,7 +258,7 @@
                     <th>Pass Rate</th>
                     <th>Failed Students</th>
                     <th>Total Students</th>
-                    <th>Risk Level</th>
+                    <th>Performance Level</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -227,8 +273,8 @@
                     <td>{{ $teacher['failed_students'] }}</td>
                     <td>{{ $teacher['total_students'] }}</td>
                     <td>
-                        <span class="risk-badge {{ $teacher['risk_level'] }}">
-                            {{ $teacher['risk_label'] }}
+                        <span class="remark-badge {{ str_replace(' ', '-', strtolower($teacher['remark'])) }}">
+                            {{ $teacher['remark'] }}
                         </span>
                     </td>
                     <td>

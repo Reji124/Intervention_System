@@ -85,12 +85,16 @@ Route::prefix('admin')
             ->name('analytics.dashboard');
         Route::post('analytics/clear-cache', [\App\Http\Controllers\Admin\AnalyticsController::class, 'clearCache'])
             ->name('analytics.clear-cache');
+        Route::post('analytics/set-semester', [\App\Http\Controllers\Admin\AnalyticsController::class, 'setSemester'])
+            ->name('analytics.set-semester');
 
         // Teacher Analytics
         Route::get('analytics/teachers', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'index'])
             ->name('analytics.teachers.index');
         Route::get('analytics/teachers/{teacher}', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'show'])
             ->name('analytics.teachers.show');
+        Route::post('analytics/teachers/{teacher}/factor-analysis', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'getSubjectFactorAnalysis'])
+            ->name('analytics.teachers.factor-analysis');
         Route::post('analytics/teachers/{teacher}/export', [\App\Http\Controllers\Admin\TeacherAnalyticsController::class, 'export'])
             ->name('analytics.teachers.export');
 

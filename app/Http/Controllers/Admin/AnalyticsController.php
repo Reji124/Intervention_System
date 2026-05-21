@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\AnalyticsService;
+use App\Services\AnalyticsSessionService;
+use Illuminate\Http\Request;
 
 /**
  * AnalyticsController
@@ -14,7 +16,8 @@ use App\Services\AnalyticsService;
 class AnalyticsController extends Controller
 {
     public function __construct(
-        private AnalyticsService $analyticsService
+        private AnalyticsService $analyticsService,
+        private AnalyticsSessionService $sessionService
     ) {}
 
     /**
@@ -37,7 +40,22 @@ class AnalyticsController extends Controller
         return view('admin.analytics.dashboard', [
             'kpis' => $kpis,
             'activeTab' => 'dashboard',
+            'currentSemester' => $this->sessionService->getSelectedSemester(),
         ]);
+    }
+
+    /**
+     * Set the selected semester in session.
+     */
+    public function setSemester(Request $request)
+    {
+        $request->validate([
+            'semester_id' => 'required|exists:semesters,id',
+        ]);
+
+        $this->sessionService->setSelectedSemester($request->integer('semester_id'));
+
+        return back();
     }
 
     /**

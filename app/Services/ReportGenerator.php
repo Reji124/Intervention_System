@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Teacher;
 use App\Models\Department;
+use App\Models\Semester;
 
 /**
  * ReportGenerator
@@ -16,22 +17,24 @@ class ReportGenerator
 {
     /**
      * Generate narrative report for a teacher.
+     * Optionally filters by semester.
      * 
      * Returns 3-5 sentences summarizing performance.
      */
-    public function generateTeacherNarrative(Teacher $teacher): string
+    public function generateTeacherNarrative(Teacher $teacher, ?Semester $semester = null): string
     {
         $performanceCalc = new PerformanceCalculator();
-        $factorAnalysis = new FactorAnalysisService();
+        $remarkCalc = new RemarkCalculator();
 
-        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher);
-        $overall = $performanceCalc->getTeacherOverallMetrics($teacher);
-        $analysis = $factorAnalysis->getAnalysisSummary($teacher);
+        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher, $semester);
+        $overall = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
 
         $sentences = [];
 
         // Opening: Overall performance trend
         $prelimRate = $summary['Prelim']['pass_rate'] ?? 0;
+        $midtermRate = $summary['Midterm']['pass_rate'] ?? 0;
+        $prefinalRate = $summary['Prefinal']['pass_rate'] ?? 0;
         $finalRate = $summary['Final']['pass_rate'] ?? 0;
         $overallRate = $overall['pass_rate'];
 
@@ -39,36 +42,38 @@ class ReportGenerator
             return "No uploaded exam results are available yet for {$teacher->teacher_name}. Analytics and risk interpretation will begin once exam results are uploaded.";
         }
 
-        if ($finalRate > $prelimRate) {
+        // Exam type progression analysis
+        if ($finalRate > $prelimRate && $finalRate > $prelimRate + 5) {
             $sentences[] = "Teacher performance demonstrates positive progression from preliminary to final examinations, indicating improved student mastery over the academic period.";
-        } elseif ($finalRate < $prelimRate) {
+        } elseif ($finalRate < $prelimRate && $prelimRate > $finalRate + 5) {
             $sentences[] = "Examination results indicate declining student performance trajectories from preliminary to final assessments, suggesting areas for instructional reinforcement.";
         } else {
-            $sentences[] = "Student performance remains relatively consistent across the academic period with an overall pass rate of {$overallRate}%.";
+            $sentences[] = "Student performance remains relatively consistent across examination periods.";
         }
 
-        // Performance characterization
+        // Per-exam-type statements
+        if ($prelimRate > 0) {
+            $prelimRemark = $remarkCalc->getRemarkLabel($prelimRate);
+            $sentences[] = "Preliminary examination performance shows {$prelimRemark} results with {$prelimRate}% pass rate.";
+        }
+
+        if ($finalRate > 0 && abs($finalRate - $prelimRate) > 10) {
+            $finalRemark = $remarkCalc->getRemarkLabel($finalRate);
+            $sentences[] = "Final examination performance demonstrates {$finalRemark} results with {$finalRate}% pass rate.";
+        }
+
+        // Overall performance characterization with remark
+        $overallRemark = $overall['remark'];
         if ($overallRate >= 85) {
-            $sentences[] = "Overall achievement metrics reflect strong student mastery and effective instructional strategies.";
+            $sentences[] = "Overall achievement metrics reflect strong student mastery and effective instructional strategies ({$overallRemark} performance).";
         } elseif ($overallRate >= 70) {
-            $sentences[] = "Moderate achievement levels indicate students are acquiring core competencies, though additional instructional support may enhance mastery.";
+            $sentences[] = "Moderate achievement levels indicate students are acquiring core competencies, though additional instructional support may enhance mastery ({$overallRemark} performance).";
         } else {
-            $sentences[] = "Performance metrics indicate below-average achievement levels requiring comprehensive instructional review and intervention strategies.";
+            $sentences[] = "Performance metrics indicate below-average achievement levels requiring comprehensive instructional review and intervention strategies ({$overallRemark} performance).";
         }
 
-        // Factor analysis insights (add one from analysis summaries)
-        if (!empty($analysis['summaries'])) {
-            $sentences[] = $analysis['summaries'][0];
-        }
-
-        // Recommendations
-        if ($overallRate < 75) {
-            $sentences[] = "Recommended actions include targeted remediation, formative assessment adjustments, and comprehensive instructional review to address identified performance gaps.";
-        } else {
-            $sentences[] = "Continued monitoring and targeted support for identified at-risk student populations is advised to maintain or improve current achievement levels.";
-        }
-
-        // Ensure 3-5 sentences
+        // Ensure 3-5 sentences, trim if necessary
+        $sentences = array_filter($sentences);
         $sentences = array_slice($sentences, 0, 5);
 
         return implode(" ", $sentences);
@@ -76,17 +81,19 @@ class ReportGenerator
 
     /**
      * Generate narrative report for a department.
+     * Optionally filters by semester.
      * 
      * Returns 3-5 sentences summarizing departmental performance.
      */
-    public function generateDepartmentNarrative(Department $department): string
+    public function generateDepartmentNarrative(Department $department, ?Semester $semester = null): string
     {
         $performanceCalc = new PerformanceCalculator();
-        $deptMetrics = $performanceCalc->getDepartmentMetrics($department);
+        $deptMetrics = $performanceCalc->getDepartmentMetrics($department, $semester);
 
         $sentences = [];
 
         $passRate = $deptMetrics['pass_rate'];
+        $remark = $deptMetrics['remark'];
         $teacherCount = $deptMetrics['total_teachers'];
         $studentCount = $deptMetrics['total_students'];
 
@@ -94,8 +101,8 @@ class ReportGenerator
             return "No uploaded exam results are available yet for the {$department->department_name} department. Department analytics and risk interpretation will begin once exam results are uploaded.";
         }
 
-        // Opening: Department overview
-        $sentences[] = "The {$department->department_name} department demonstrates an overall pass rate of {$passRate}% across {$teacherCount} faculty members and {$studentCount} students.";
+        // Opening: Department overview with remark
+        $sentences[] = "The {$department->department_name} department demonstrates an overall pass rate of {$passRate}% ({$remark} performance) across {$teacherCount} faculty members and {$studentCount} students.";
 
         // Performance characterization
         if ($passRate >= 85) {
@@ -107,9 +114,10 @@ class ReportGenerator
         }
 
         // Identify at-risk areas
-        if (isset($deptMetrics['highest_risk_subject'])) {
+        if (isset($deptMetrics['highest_risk_subject']) && ($deptMetrics['highest_risk_subject']['total_results'] ?? 0) > 0) {
             $riskSubject = $deptMetrics['highest_risk_subject'];
-            $sentences[] = "The {$riskSubject['subject_name']} subject area demonstrates elevated risk levels with {$riskSubject['pass_rate']}% pass rate, requiring targeted intervention.";
+            $subjectRemark = $riskSubject['remark'] ?? 'low';
+            $sentences[] = "The {$riskSubject['subject_name']} subject area demonstrates elevated risk levels with {$riskSubject['pass_rate']}% pass rate ({$subjectRemark} performance), requiring targeted intervention.";
         }
 
         // Recommendations
@@ -120,6 +128,7 @@ class ReportGenerator
         }
 
         // Ensure 3-5 sentences
+        $sentences = array_filter($sentences);
         $sentences = array_slice($sentences, 0, 5);
 
         return implode(" ", $sentences);

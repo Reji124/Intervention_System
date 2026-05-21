@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Exam;
 use App\Models\Teacher;
 use App\Models\Subject;
+use App\Models\Semester;
 use Illuminate\Support\Collection;
 
 /**
@@ -24,22 +25,29 @@ class PerformanceCalculator
 
     /**
      * Get performance summary for a teacher across all exam types.
+     * Optionally filters by semester.
      * 
      * Returns array with exam types as keys and metrics as values:
      * [
-     *   'Prelim' => ['pass_rate' => 85, 'failed_students' => 5, 'mean_score' => 78.5, 'difficulty' => 'Moderate'],
+     *   'Prelim' => ['pass_rate' => 85, 'failed_students' => 5, 'mean_score' => 78.5, 'remark' => 'Good'],
      *   'Midterm' => [...],
      *   ...
      * ]
      */
-    public function getTeacherPerformanceSummary(Teacher $teacher): array
+    public function getTeacherPerformanceSummary(Teacher $teacher, ?Semester $semester = null): array
     {
         $summary = [];
+        $remarkCalc = new RemarkCalculator();
 
         // Load all data once instead of per exam type
-        $teacherSubjects = $teacher->teacherSubjects()
-            ->with(['exams.examResults'])
-            ->get();
+        $query = $teacher->teacherSubjects()
+            ->with(['exams.examResults']);
+        
+        if ($semester) {
+            $query->where('semester_id', $semester->id);
+        }
+        
+        $teacherSubjects = $query->get();
 
         foreach (self::EXAM_TYPES as $examType => $examLabel) {
             $totalResults = 0;
@@ -72,7 +80,8 @@ class PerformanceCalculator
                 'pass_rate'       => $passRate,
                 'failed_students' => $failCount,
                 'mean_score'      => $meanScore,
-                'difficulty'      => $totalResults > 0 ? $this->estimateDifficulty($passRate) : 'No data',
+                'remark'          => $totalResults > 0 ? $remarkCalc->getRemarkLabel($passRate) : 'No data',
+                'remark_class'    => $totalResults > 0 ? $remarkCalc->getBadgeClass($passRate) : 'none',
                 'total_students'  => $totalResults,
             ];
         }
@@ -82,12 +91,20 @@ class PerformanceCalculator
 
     /**
      * Get overall performance totals for a teacher.
+     * Optionally filters by semester.
      */
-    public function getTeacherOverallMetrics(Teacher $teacher): array
+    public function getTeacherOverallMetrics(Teacher $teacher, ?Semester $semester = null): array
     {
-        $exams = $teacher->teacherSubjects()
-            ->with('exams.examResults')
-            ->get();
+        $remarkCalc = new RemarkCalculator();
+
+        $query = $teacher->teacherSubjects()
+            ->with('exams.examResults');
+        
+        if ($semester) {
+            $query->where('semester_id', $semester->id);
+        }
+        
+        $exams = $query->get();
 
         $totalResults = 0;
         $passCount = 0;
@@ -117,22 +134,32 @@ class PerformanceCalculator
             'failure_rate' => $failureRate,
             'failed_students' => $failCount,
             'mean_score' => $meanScore,
+            'remark' => $totalResults > 0 ? $remarkCalc->getRemarkLabel($passRate) : 'No data',
+            'remark_class' => $totalResults > 0 ? $remarkCalc->getBadgeClass($passRate) : 'none',
             'total_students' => $totalResults,
         ];
     }
 
     /**
      * Get subject performance breakdown for a teacher.
+     * Optionally filters by semester.
      * 
      * Returns array of subjects with performance metrics.
      */
-    public function getTeacherSubjectBreakdown(Teacher $teacher): array
+    public function getTeacherSubjectBreakdown(Teacher $teacher, ?Semester $semester = null): array
     {
-        $teacherSubjects = $teacher->teacherSubjects()
-            ->with(['subject', 'exams.examResults', 'students'])
-            ->get();
+        $remarkCalc = new RemarkCalculator();
 
-        return $teacherSubjects->map(function ($ts) {
+        $query = $teacher->teacherSubjects()
+            ->with(['subject', 'exams.examResults', 'students']);
+        
+        if ($semester) {
+            $query->where('semester_id', $semester->id);
+        }
+        
+        $teacherSubjects = $query->get();
+
+        return $teacherSubjects->map(function ($ts) use ($remarkCalc) {
             $totalResults = 0;
             $passCount = 0;
             $failCount = 0;
@@ -165,6 +192,8 @@ class PerformanceCalculator
                 'failed_students' => $failCount,
                 'intervention_count' => $interventionCount,
                 'mean_score' => $totalResults > 0 ? round($totalScore / $totalResults, 2) : 0,
+                'remark' => $totalResults > 0 ? $remarkCalc->getRemarkLabel($passRate) : 'No data',
+                'remark_class' => $totalResults > 0 ? $remarkCalc->getBadgeClass($passRate) : 'none',
                 'risk_level' => $riskLevel['level'],
                 'risk_label' => $riskLevel['label'],
             ];
@@ -202,19 +231,32 @@ class PerformanceCalculator
 
     /**
      * Get department-wide performance metrics.
+     * Optionally filters by semester.
      */
-    public function getDepartmentMetrics($department): array
+    public function getDepartmentMetrics($department, ?Semester $semester = null): array
     {
-        $courses = $department->courses()->with('subjects.teacherSubjects.exams.examResults')->get();
+        $remarkCalc = new RemarkCalculator();
+
+        $coursesQuery = $department->courses();
+        
+        if ($semester) {
+            $coursesQuery->with(['subjects.teacherSubjects' => function ($q) {
+                $q->where('semester_id', $semester->id);
+            }, 'subjects.teacherSubjects.exams.examResults']);
+        } else {
+            $coursesQuery->with('subjects.teacherSubjects.exams.examResults');
+        }
+        
+        $courses = $coursesQuery->get();
 
         $totalResults = 0;
         $passCount = 0;
         $teacherIds = [];
         $subjectMetrics = [];
 
-        $courses->each(function ($course) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics) {
-            $course->subjects->each(function ($subject) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics) {
-                $subject->teacherSubjects->each(function ($ts) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $subject) {
+        $courses->each(function ($course) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $remarkCalc) {
+            $course->subjects->each(function ($subject) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $remarkCalc) {
+                $subject->teacherSubjects->each(function ($ts) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $subject, $remarkCalc) {
                     $teacherIds[$ts->teacher_id] = true;
                     
                     $subjectTotal = 0;
@@ -238,6 +280,7 @@ class PerformanceCalculator
                         'subject_name' => $subject->subject_name,
                         'pass_rate' => $subjectPassRate,
                         'total_results' => $subjectTotal,
+                        'remark' => $subjectTotal > 0 ? $remarkCalc->getRemarkLabel($subjectPassRate) : 'No data',
                         'risk_level' => $riskLevel['level'],
                     ];
                 });
@@ -248,6 +291,7 @@ class PerformanceCalculator
 
         return [
             'pass_rate' => $passRate,
+            'remark' => $totalResults > 0 ? $remarkCalc->getRemarkLabel($passRate) : 'No data',
             'total_teachers' => count($teacherIds),
             'total_students' => $totalResults,
             'highest_risk_subject' => collect($subjectMetrics)
@@ -259,25 +303,11 @@ class PerformanceCalculator
     }
 
     /**
-     * Estimate difficulty level based on pass rate.
-     */
-    private function estimateDifficulty(int $passRate): string
-    {
-        if ($passRate >= 85) {
-            return 'Easy';
-        } elseif ($passRate >= 70) {
-            return 'Moderate';
-        } else {
-            return 'Difficult';
-        }
-    }
-
-    /**
      * Get trend data for a teacher (pass rate progression: Prelim → Midterm → Prefinal → Final).
      */
-    public function getTeacherTrendData(Teacher $teacher): array
+    public function getTeacherTrendData(Teacher $teacher, ?Semester $semester = null): array
     {
-        $summary = $this->getTeacherPerformanceSummary($teacher);
+        $summary = $this->getTeacherPerformanceSummary($teacher, $semester);
         $trendData = [];
 
         foreach (self::EXAM_TYPES as $examLabel) {
