@@ -21,31 +21,29 @@ class ExportService
      * 
      * Returns PDF file download response.
      */
-    public function exportTeacherPDF(Teacher $teacher)
+    public function exportTeacherPDF(Teacher $teacher, ?Semester $semester = null)
     {
         $performanceCalc = new PerformanceCalculator();
-        $factorAnalysis = new FactorAnalysisService();
+        $factorAnalysis = new SubjectFactorAnalysisService();
         $reportGenerator = new ReportGenerator();
 
-        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher);
-        $overall = $performanceCalc->getTeacherOverallMetrics($teacher);
-        $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher);
-        $analysis = $factorAnalysis->getAnalysisSummary($teacher);
-        $narrative = $reportGenerator->generateTeacherNarrative($teacher);
+        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher, $semester);
+        $overall = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
+        $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher, $semester);
+        $narrative = $reportGenerator->generateTeacherNarrative($teacher, $semester);
 
         $data = [
             'teacher' => $teacher,
             'summary' => $summary,
             'overall' => $overall,
             'subjectBreakdown' => $subjectBreakdown,
-            'analysis' => $analysis,
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
-        ] + $this->getReportHeaderData();
+        ] + $this->getReportHeaderData($semester);
 
         $pdf = Pdf::loadView('admin.analytics.exports.teacher-pdf', $data);
-        $filename = "teacher_report_{$teacher->teacher_code}_{$this->getCurrentSemesterCode()}.pdf";
+        $filename = "teacher_report_{$teacher->teacher_code}_{$this->formatSemesterCode($semester)}.pdf";
 
         return $pdf->download($filename);
     }
@@ -55,12 +53,12 @@ class ExportService
      * 
      * Returns CSV file download response.
      */
-    public function exportTeacherCSV(Teacher $teacher)
+    public function exportTeacherCSV(Teacher $teacher, ?Semester $semester = null)
     {
         $performanceCalc = new PerformanceCalculator();
-        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher);
-        $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher);
-        $overall = $performanceCalc->getTeacherOverallMetrics($teacher);
+        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher, $semester);
+        $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher, $semester);
+        $overall = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
 
         // Build CSV content
         $csv = [];
@@ -85,7 +83,7 @@ class ExportService
 
         // Exam type summary
         $csv[] = ['Exam Type Performance', '', '', '', ''];
-        $csv[] = ['Exam Type', 'Pass Rate', 'Failed Students', 'Mean Score', 'Difficulty'];
+        $csv[] = ['Exam Type', 'Pass Rate', 'Failed Students', 'Mean Score', 'Remark'];
         foreach ($summary as $examType => $metrics) {
             $hasExamData = $metrics['total_students'] > 0;
             $csv[] = [
@@ -93,7 +91,7 @@ class ExportService
                 $hasExamData ? $metrics['pass_rate'] . '%' : 'No data',
                 $metrics['failed_students'],
                 $hasExamData ? $metrics['mean_score'] : 'No data',
-                $metrics['difficulty'],
+                $metrics['remark'] ?? 'N/A',
             ];
         }
         $csv[] = [];
@@ -112,44 +110,46 @@ class ExportService
             ];
         }
 
-        return $this->downloadCSV($csv, "teacher_report_{$teacher->teacher_code}_{$this->getCurrentSemesterCode()}.csv");
+        return $this->downloadCSV($csv, "teacher_report_{$teacher->teacher_code}_{$this->formatSemesterCode($semester)}.csv");
     }
 
     /**
      * Export department report as PDF.
      */
-    public function exportDepartmentPDF(Department $department)
+    public function exportDepartmentPDF(Department $department, ?Semester $semester = null)
     {
         $performanceCalc = new PerformanceCalculator();
         $reportGenerator = new ReportGenerator();
 
-        $metrics = $performanceCalc->getDepartmentMetrics($department);
-        $narrative = $reportGenerator->generateDepartmentNarrative($department);
+        $metrics = $performanceCalc->getDepartmentMetrics($department, $semester);
+        $narrative = $reportGenerator->generateDepartmentNarrative($department, $semester);
 
-        // Get all teachers in department
-        $teachers = $department->courses()
-            ->with('subjects.teacherSubjects.teacher.exams.examResults')
+        // Get all teachers in department (for selected semester)
+        $teacherSubjects = $department->courses()
+            ->with([
+                'subjects.teacherSubjects' => function ($q) use ($semester) {
+                    if ($semester) {
+                        $q->where('semester_id', $semester->id);
+                    }
+                    $q->with(['exams.examResults', 'teacher']);
+                },
+            ])
             ->get()
-            ->flatMap(function ($course) {
-                return $course->subjects->flatMap(function ($subject) {
-                    return $subject->teacherSubjects->pluck('teacher');
-                });
-            })
-            ->unique('id')
-            ->map(function ($teacher) use ($performanceCalc) {
-                $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher);
-                $riskLevel = AnalyticsService::getRiskLevel(
-                    $teacherMetrics['pass_rate'],
-                    $teacherMetrics['total_students']
-                );
+            ->flatMap(fn($course) => $course->subjects)
+            ->flatMap(fn($subject) => $subject->teacherSubjects);
+
+        $teachers = $teacherSubjects
+            ->groupBy('teacher_id')
+            ->map(function ($tsList) use ($performanceCalc, $semester) {
+                $teacher = $tsList->first()->teacher;
+                $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
 
                 return [
                     'name' => $teacher->teacher_name,
                     'pass_rate' => $teacherMetrics['pass_rate'],
                     'failed_students' => $teacherMetrics['failed_students'],
                     'total_students' => $teacherMetrics['total_students'],
-                    'risk_level' => $riskLevel['level'],
-                    'risk_label' => $riskLevel['label'],
+                    'remark' => $teacherMetrics['remark'],
                 ];
             })
             ->sortByDesc('pass_rate');
@@ -161,10 +161,10 @@ class ExportService
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
-        ] + $this->getReportHeaderData();
+        ] + $this->getReportHeaderData($semester);
 
         $pdf = Pdf::loadView('admin.analytics.exports.department-pdf', $data);
-        $filename = "department_report_{$department->id}_{$this->getCurrentSemesterCode()}.pdf";
+        $filename = "department_report_{$department->id}_{$this->formatSemesterCode($semester)}.pdf";
 
         return $pdf->download($filename);
     }
@@ -172,10 +172,10 @@ class ExportService
     /**
      * Export department report as CSV.
      */
-    public function exportDepartmentCSV(Department $department)
+    public function exportDepartmentCSV(Department $department, ?Semester $semester = null)
     {
         $performanceCalc = new PerformanceCalculator();
-        $metrics = $performanceCalc->getDepartmentMetrics($department);
+        $metrics = $performanceCalc->getDepartmentMetrics($department, $semester);
 
         $csv = [];
         $csv[] = ['Department Report Export', '', '', '', ''];
@@ -196,58 +196,74 @@ class ExportService
 
         // Teacher rankings
         $csv[] = ['Teacher Performance Rankings', '', '', '', ''];
-        $csv[] = ['Rank', 'Teacher Name', 'Pass Rate', 'Students', ''];
+        $csv[] = ['Rank', 'Teacher Name', 'Pass Rate', 'Students', 'Remark'];
 
-        $teachers = $department->courses()
-            ->with('subjects.teacherSubjects.teacher.exams.examResults')
+        $teacherSubjects = $department->courses()
+            ->with([
+                'subjects.teacherSubjects' => function ($q) use ($semester) {
+                    if ($semester) {
+                        $q->where('semester_id', $semester->id);
+                    }
+                    $q->with(['exams.examResults', 'teacher']);
+                },
+            ])
             ->get()
-            ->flatMap(function ($course) {
-                return $course->subjects->flatMap(function ($subject) {
-                    return $subject->teacherSubjects->pluck('teacher');
-                });
+            ->flatMap(fn($course) => $course->subjects)
+            ->flatMap(fn($subject) => $subject->teacherSubjects);
+
+        $teachers = $teacherSubjects
+            ->groupBy('teacher_id')
+            ->map(function ($tsList) use ($performanceCalc, $semester) {
+                $teacher = $tsList->first()->teacher;
+                $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
+                return [
+                    'id' => $teacher->id,
+                    'name' => $teacher->teacher_name,
+                    'pass_rate' => $teacherMetrics['pass_rate'],
+                    'total_students' => $teacherMetrics['total_students'],
+                    'remark' => $teacherMetrics['remark'],
+                ];
             })
-            ->unique('id');
+            ->sortByDesc('pass_rate')
+            ->values();
 
         $rank = 1;
         foreach ($teachers as $teacher) {
-            $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher);
             $csv[] = [
                 $rank++,
-                $teacher->teacher_name,
-                $teacherMetrics['total_students'] > 0 ? $teacherMetrics['pass_rate'] . '%' : 'No data',
-                $teacherMetrics['total_students'],
-                '',
+                $teacher['name'],
+                $teacher['total_students'] > 0 ? $teacher['pass_rate'] . '%' : 'No data',
+                $teacher['total_students'],
+                $teacher['remark'],
             ];
         }
 
-        return $this->downloadCSV($csv, "department_report_{$department->id}_{$this->getCurrentSemesterCode()}.csv");
+        return $this->downloadCSV($csv, "department_report_{$department->id}_{$this->formatSemesterCode($semester)}.csv");
     }
 
     /**
      * Prepare data for print layout (returns view).
      */
-    public function getPrintableTeacherReport(Teacher $teacher)
+    public function getPrintableTeacherReport(Teacher $teacher, ?Semester $semester = null)
     {
         $performanceCalc = new PerformanceCalculator();
-        $factorAnalysis = new FactorAnalysisService();
+        $factorAnalysis = new SubjectFactorAnalysisService();
         $reportGenerator = new ReportGenerator();
 
-        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher);
-        $overall = $performanceCalc->getTeacherOverallMetrics($teacher);
-        $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher);
-        $analysis = $factorAnalysis->getAnalysisSummary($teacher);
-        $narrative = $reportGenerator->generateTeacherNarrative($teacher);
+        $summary = $performanceCalc->getTeacherPerformanceSummary($teacher, $semester);
+        $overall = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
+        $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher, $semester);
+        $narrative = $reportGenerator->generateTeacherNarrative($teacher, $semester);
 
         return view('admin.analytics.exports.teacher-print', [
             'teacher' => $teacher,
             'summary' => $summary,
             'overall' => $overall,
             'subjectBreakdown' => $subjectBreakdown,
-            'analysis' => $analysis,
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
-        ] + $this->getReportHeaderData());
+        ] + $this->getReportHeaderData($semester));
     }
 
     /**
@@ -270,27 +286,27 @@ class ExportService
     }
 
     /**
-     * Get current semester code for file naming.
+     * Format semester code for file naming.
      */
-    private function getCurrentSemesterCode(): string
+    private function formatSemesterCode(?Semester $semester): string
     {
-        $semester = $this->getCurrentSemester();
-        if (!$semester || !$semester->schoolYear) {
+        $sem = $semester ?? $this->getCurrentSemester();
+        if (!$sem || !$sem->schoolYear) {
             return date('YmdHis');
         }
 
-        $year = $semester->schoolYear->year_start;
-        $sem = str_replace(' ', '', $semester->semester_name);
+        $year = $sem->schoolYear->year_start;
+        $semName = str_replace(' ', '', $sem->semester_name);
 
-        return "{$year}_{$sem}";
+        return "{$year}_{$semName}";
     }
 
     /**
      * Shared report header data for PDF and print exports.
      */
-    private function getReportHeaderData(): array
+    private function getReportHeaderData(?Semester $semester = null): array
     {
-        $currentSemester = $this->getCurrentSemester();
+        $currentSemester = $semester ?? $this->getCurrentSemester();
 
         return [
             'currentSemester' => $currentSemester,
