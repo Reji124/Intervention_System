@@ -18,6 +18,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
+ENV PYTHON_PATH=/usr/bin/python3
+
 COPY . .
 
 # Create necessary directories
@@ -26,10 +28,10 @@ RUN mkdir -p /var/www/storage/framework/{sessions,views,cache} \
     && mkdir -p /var/www/bootstrap/cache
 
 RUN composer install --no-dev --optimize-autoloader
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 # Install Python dependencies for PDF parsing
-RUN pip3 install pdfplumber --break-system-packages
+RUN pip3 install --no-cache-dir pdfplumber --break-system-packages
 
 RUN cp .env.example .env && php artisan key:generate --force
 
