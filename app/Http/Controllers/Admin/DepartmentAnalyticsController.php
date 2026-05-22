@@ -71,47 +71,7 @@ class DepartmentAnalyticsController extends Controller
         $metrics = $this->performanceCalculator->getDepartmentMetrics($department, $selectedSemester);
         $narrative = $this->reportGenerator->generateDepartmentNarrative($department, $selectedSemester);
 
-        // Get all teachers with subjects in this department (for selected semester)
-        $teacherSubjects = $department->courses()
-            ->with([
-                'subjects.teacherSubjects' => function ($q) use ($selectedSemester) {
-                    $q->where('semester_id', $selectedSemester->id)
-                      ->with(['exams.examResults', 'teacher']);
-                },
-            ])
-            ->get()
-            ->flatMap(fn($course) => $course->subjects)
-            ->flatMap(fn($subject) => $subject->teacherSubjects);
-
-        // Get unique teachers and calculate metrics
-        $teachersData = $teacherSubjects
-            ->groupBy('teacher_id')
-            ->filter(function ($tsList) {
-                // Only include teachers with exam results
-                return $tsList->flatMap(fn($ts) => $ts->exams)->flatMap(fn($exam) => $exam->examResults)->count() > 0;
-            })
-            ->map(function ($tsList) use ($selectedSemester) {
-                $teacher = $tsList->first()->teacher;
-                $metrics = $this->performanceCalculator->getTeacherOverallMetrics($teacher, $selectedSemester);
-                $riskLevel = \App\Services\AnalyticsService::getRiskLevel(
-                    $metrics['pass_rate'],
-                    $metrics['total_students']
-                );
-
-                return [
-                    'id' => $teacher->id,
-                    'name' => $teacher->teacher_name,
-                    'code' => $teacher->teacher_code,
-                    'pass_rate' => $metrics['pass_rate'],
-                    'remark' => $metrics['remark'],
-                    'failed_students' => $metrics['failed_students'],
-                    'total_students' => $metrics['total_students'],
-                    'risk_level' => $metrics['remark_class'],
-                    'risk_label' => $metrics['remark'],
-                ];
-            })
-            ->sortByDesc('pass_rate')
-            ->values();
+        $teachersData = $this->performanceCalculator->getDepartmentTeacherRankings($department, $selectedSemester);
 
         return view('admin.analytics.departments.show', [
             'department' => $department,

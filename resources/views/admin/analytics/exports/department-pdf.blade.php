@@ -191,6 +191,8 @@
                 <tbody>
                     @forelse($teachers as $rank => $teacher)
                     @php($hasData = $teacher['total_students'] > 0)
+                    @php($riskLevel = $teacher['risk_level'] ?? 'none')
+                    @php($riskLabel = $teacher['risk_label'] ?? ($teacher['remark'] ?? 'No data'))
                     <tr>
                         <td>{{ $rank + 1 }}</td>
                         <td>{{ $teacher['name'] }}</td>
@@ -198,8 +200,8 @@
                         <td>{{ $teacher['failed_students'] }}</td>
                         <td>{{ $teacher['total_students'] }}</td>
                         <td>
-                            <span class="badge risk-{{ $teacher['risk_level'] }}">
-                                {{ $teacher['risk_label'] }}
+                            <span class="badge risk-{{ $riskLevel }}">
+                                {{ $riskLabel }}
                             </span>
                         </td>
                     </tr>

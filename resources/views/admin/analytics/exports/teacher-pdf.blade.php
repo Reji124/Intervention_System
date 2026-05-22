@@ -163,7 +163,7 @@
                 </div>
                 <div class="info-item">
                     <div class="info-label">Subjects</div>
-                    <div class="info-value">{{ $teacher->teacherSubjects->count() }}</div>
+                    <div class="info-value">{{ count($subjectBreakdown) }}</div>
                 </div>
             </div>
         </div>
@@ -245,6 +245,7 @@
         {{-- Factor Analysis --}}
         <div class="section">
             <div class="section-title">Factor Analysis</div>
+            @php($factorAnalysis = $overallFactorAnalysis ?? ['exam_factor' => 0, 'teacher_factor' => 0, 'student_factor' => 0, 'summaries' => []])
             <table>
                 <thead>
                     <tr>
@@ -254,23 +255,26 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Exam Factor</td>
-                        <td>{{ $analysis['factors']['exam_factor'] }}%</td>
+                        <td>Exam Quality</td>
+                        <td>{{ round($factorAnalysis['exam_factor'] ?? 0) }}%</td>
                     </tr>
                     <tr>
-                        <td>Teacher Factor</td>
-                        <td>{{ $analysis['factors']['teacher_factor'] }}%</td>
+                        <td>Teaching Consistency</td>
+                        <td>{{ round($factorAnalysis['teacher_factor'] ?? 0) }}%</td>
                     </tr>
                     <tr>
-                        <td>Student Factor</td>
-                        <td>{{ $analysis['factors']['student_factor'] }}%</td>
-                    </tr>
-                    <tr>
-                        <td>Curriculum Factor</td>
-                        <td>{{ $analysis['factors']['curriculum_factor'] }}%</td>
+                        <td>Student Performance</td>
+                        <td>{{ round($factorAnalysis['student_factor'] ?? 0) }}%</td>
                     </tr>
                 </tbody>
             </table>
+            @if(!empty($factorAnalysis['summaries']))
+                <div class="narrative">
+                    <strong>Exam Quality:</strong> {{ $factorAnalysis['summaries']['exam_factor'] ?? 'No data available.' }}<br>
+                    <strong>Teaching Consistency:</strong> {{ $factorAnalysis['summaries']['teacher_factor'] ?? 'No data available.' }}<br>
+                    <strong>Student Performance:</strong> {{ $factorAnalysis['summaries']['student_factor'] ?? 'No data available.' }}
+                </div>
+            @endif
         </div>
 
         {{-- Professional Narrative --}}

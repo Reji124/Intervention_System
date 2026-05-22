@@ -24,19 +24,21 @@ class ExportService
     public function exportTeacherPDF(Teacher $teacher, ?Semester $semester = null)
     {
         $performanceCalc = new PerformanceCalculator();
-        $factorAnalysis = new SubjectFactorAnalysisService();
+        $factorAnalysis = new ExamTypeFactorAnalysisService();
         $reportGenerator = new ReportGenerator();
 
         $summary = $performanceCalc->getTeacherPerformanceSummary($teacher, $semester);
         $overall = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
         $subjectBreakdown = $performanceCalc->getTeacherSubjectBreakdown($teacher, $semester);
         $narrative = $reportGenerator->generateTeacherNarrative($teacher, $semester);
+        $overallFactorAnalysis = $factorAnalysis->analyzeOverallPerformance($teacher, $semester);
 
         $data = [
             'teacher' => $teacher,
             'summary' => $summary,
             'overall' => $overall,
             'subjectBreakdown' => $subjectBreakdown,
+            'overallFactorAnalysis' => $overallFactorAnalysis,
             'narrative' => $narrative,
             'exportedAt' => now(),
             'generatedBy' => auth()->user()?->name ?? 'System',
@@ -124,35 +126,7 @@ class ExportService
         $metrics = $performanceCalc->getDepartmentMetrics($department, $semester);
         $narrative = $reportGenerator->generateDepartmentNarrative($department, $semester);
 
-        // Get all teachers in department (for selected semester)
-        $teacherSubjects = $department->courses()
-            ->with([
-                'subjects.teacherSubjects' => function ($q) use ($semester) {
-                    if ($semester) {
-                        $q->where('semester_id', $semester->id);
-                    }
-                    $q->with(['exams.examResults', 'teacher']);
-                },
-            ])
-            ->get()
-            ->flatMap(fn($course) => $course->subjects)
-            ->flatMap(fn($subject) => $subject->teacherSubjects);
-
-        $teachers = $teacherSubjects
-            ->groupBy('teacher_id')
-            ->map(function ($tsList) use ($performanceCalc, $semester) {
-                $teacher = $tsList->first()->teacher;
-                $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
-
-                return [
-                    'name' => $teacher->teacher_name,
-                    'pass_rate' => $teacherMetrics['pass_rate'],
-                    'failed_students' => $teacherMetrics['failed_students'],
-                    'total_students' => $teacherMetrics['total_students'],
-                    'remark' => $teacherMetrics['remark'],
-                ];
-            })
-            ->sortByDesc('pass_rate');
+        $teachers = $performanceCalc->getDepartmentTeacherRankings($department, $semester);
 
         $data = [
             'department' => $department,
@@ -198,34 +172,7 @@ class ExportService
         $csv[] = ['Teacher Performance Rankings', '', '', '', ''];
         $csv[] = ['Rank', 'Teacher Name', 'Pass Rate', 'Students', 'Remark'];
 
-        $teacherSubjects = $department->courses()
-            ->with([
-                'subjects.teacherSubjects' => function ($q) use ($semester) {
-                    if ($semester) {
-                        $q->where('semester_id', $semester->id);
-                    }
-                    $q->with(['exams.examResults', 'teacher']);
-                },
-            ])
-            ->get()
-            ->flatMap(fn($course) => $course->subjects)
-            ->flatMap(fn($subject) => $subject->teacherSubjects);
-
-        $teachers = $teacherSubjects
-            ->groupBy('teacher_id')
-            ->map(function ($tsList) use ($performanceCalc, $semester) {
-                $teacher = $tsList->first()->teacher;
-                $teacherMetrics = $performanceCalc->getTeacherOverallMetrics($teacher, $semester);
-                return [
-                    'id' => $teacher->id,
-                    'name' => $teacher->teacher_name,
-                    'pass_rate' => $teacherMetrics['pass_rate'],
-                    'total_students' => $teacherMetrics['total_students'],
-                    'remark' => $teacherMetrics['remark'],
-                ];
-            })
-            ->sortByDesc('pass_rate')
-            ->values();
+        $teachers = $performanceCalc->getDepartmentTeacherRankings($department, $semester);
 
         $rank = 1;
         foreach ($teachers as $teacher) {

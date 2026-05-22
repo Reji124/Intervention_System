@@ -236,55 +236,61 @@ class PerformanceCalculator
     public function getDepartmentMetrics($department, ?Semester $semester = null): array
     {
         $remarkCalc = new RemarkCalculator();
-
-        $coursesQuery = $department->courses();
-        
-        if ($semester) {
-            $coursesQuery->with(['subjects.teacherSubjects' => function ($q) use ($semester) {
-                $q->where('semester_id', $semester->id);
-            }, 'subjects.teacherSubjects.exams.examResults']);
-        } else {
-            $coursesQuery->with('subjects.teacherSubjects.exams.examResults');
-        }
-        
-        $courses = $coursesQuery->get();
+        $teacherSubjects = $this->getDepartmentTeacherSubjects($department, $semester);
 
         $totalResults = 0;
         $passCount = 0;
         $teacherIds = [];
         $subjectMetrics = [];
 
-        $courses->each(function ($course) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $remarkCalc) {
-            $course->subjects->each(function ($subject) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $remarkCalc) {
-                $subject->teacherSubjects->each(function ($ts) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics, $subject, $remarkCalc) {
-                    $teacherIds[$ts->teacher_id] = true;
-                    
-                    $subjectTotal = 0;
-                    $subjectPass = 0;
+        $teacherSubjects->each(function ($ts) use (&$totalResults, &$passCount, &$teacherIds, &$subjectMetrics) {
+            $subjectTotal = 0;
+            $subjectPass = 0;
 
-                    $ts->exams->each(function ($exam) use (&$totalResults, &$passCount, &$subjectTotal, &$subjectPass) {
-                        $exam->examResults->each(function ($result) use (&$totalResults, &$passCount, &$subjectTotal, &$subjectPass) {
-                            $totalResults++;
-                            $subjectTotal++;
-                            if ($result->remark === 'pass') {
-                                $passCount++;
-                                $subjectPass++;
-                            }
-                        });
-                    });
+            $ts->exams->each(function ($exam) use (&$totalResults, &$passCount, &$subjectTotal, &$subjectPass) {
+                $exam->examResults->each(function ($result) use (&$totalResults, &$passCount, &$subjectTotal, &$subjectPass) {
+                    $totalResults++;
+                    $subjectTotal++;
 
-                    $subjectPassRate = $subjectTotal > 0 ? (int) round(($subjectPass / $subjectTotal) * 100) : 0;
-                    $riskLevel = AnalyticsService::getRiskLevel($subjectPassRate, $subjectTotal);
-
-                    $subjectMetrics[$subject->id] = [
-                        'subject_name' => $subject->subject_name,
-                        'pass_rate' => $subjectPassRate,
-                        'total_results' => $subjectTotal,
-                        'remark' => $subjectTotal > 0 ? $remarkCalc->getRemarkLabel($subjectPassRate) : 'No data',
-                        'risk_level' => $riskLevel['level'],
-                    ];
+                    if ($result->remark === 'pass') {
+                        $passCount++;
+                        $subjectPass++;
+                    }
                 });
             });
+
+            if ($subjectTotal === 0) {
+                return;
+            }
+
+            $teacherIds[$ts->teacher_id] = true;
+            $subjectId = $ts->subject->id;
+
+            if (!isset($subjectMetrics[$subjectId])) {
+                $subjectMetrics[$subjectId] = [
+                    'subject_name' => $ts->subject->subject_name,
+                    'pass_count' => 0,
+                    'total_results' => 0,
+                ];
+            }
+
+            $subjectMetrics[$subjectId]['pass_count'] += $subjectPass;
+            $subjectMetrics[$subjectId]['total_results'] += $subjectTotal;
+        });
+
+        $subjectMetrics = collect($subjectMetrics)->map(function ($subject) use ($remarkCalc) {
+            $subjectPassRate = $subject['total_results'] > 0
+                ? (int) round(($subject['pass_count'] / $subject['total_results']) * 100)
+                : 0;
+            $riskLevel = AnalyticsService::getRiskLevel($subjectPassRate, $subject['total_results']);
+
+            return [
+                'subject_name' => $subject['subject_name'],
+                'pass_rate' => $subjectPassRate,
+                'total_results' => $subject['total_results'],
+                'remark' => $subject['total_results'] > 0 ? $remarkCalc->getRemarkLabel($subjectPassRate) : 'No data',
+                'risk_level' => $riskLevel['level'],
+            ];
         });
 
         $passRate = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
@@ -294,12 +300,91 @@ class PerformanceCalculator
             'remark' => $totalResults > 0 ? $remarkCalc->getRemarkLabel($passRate) : 'No data',
             'total_teachers' => count($teacherIds),
             'total_students' => $totalResults,
-            'highest_risk_subject' => collect($subjectMetrics)
+            'highest_risk_subject' => $subjectMetrics
                 ->filter(fn ($subject) => ($subject['total_results'] ?? 0) > 0)
                 ->sortBy('pass_rate')
                 ->first(),
             'top_performing_teacher' => null, // Will be filled by caller
         ];
+    }
+
+    /**
+     * Get department teacher rankings using only teacher-subject rows that belong
+     * to the department and selected semester.
+     */
+    public function getDepartmentTeacherRankings($department, ?Semester $semester = null): Collection
+    {
+        $remarkCalc = new RemarkCalculator();
+        $teacherSubjects = $this->getDepartmentTeacherSubjects($department, $semester);
+
+        return $teacherSubjects
+            ->groupBy('teacher_id')
+            ->filter(function ($tsList) {
+                return $tsList
+                    ->flatMap(fn($ts) => $ts->exams)
+                    ->flatMap(fn($exam) => $exam->examResults)
+                    ->count() > 0;
+            })
+            ->map(function ($tsList) use ($remarkCalc) {
+                $teacher = $tsList->first()->teacher;
+                $totalResults = 0;
+                $passCount = 0;
+                $failCount = 0;
+                $totalScore = 0;
+
+                $tsList->each(function ($ts) use (&$totalResults, &$passCount, &$failCount, &$totalScore) {
+                    $ts->exams->each(function ($exam) use (&$totalResults, &$passCount, &$failCount, &$totalScore) {
+                        $exam->examResults->each(function ($result) use (&$totalResults, &$passCount, &$failCount, &$totalScore) {
+                            $totalResults++;
+                            $totalScore += $result->percentage;
+
+                            if ($result->remark === 'pass') {
+                                $passCount++;
+                            } else {
+                                $failCount++;
+                            }
+                        });
+                    });
+                });
+
+                $passRate = $totalResults > 0 ? (int) round(($passCount / $totalResults) * 100) : 0;
+                $riskLevel = AnalyticsService::getRiskLevel($passRate, $totalResults);
+
+                return [
+                    'id' => $teacher->id,
+                    'name' => $teacher->teacher_name,
+                    'code' => $teacher->teacher_code,
+                    'pass_rate' => $passRate,
+                    'failed_students' => $failCount,
+                    'total_students' => $totalResults,
+                    'mean_score' => $totalResults > 0 ? round($totalScore / $totalResults, 2) : 0,
+                    'remark' => $totalResults > 0 ? $remarkCalc->getRemarkLabel($passRate) : 'No data',
+                    'remark_class' => $totalResults > 0 ? $remarkCalc->getBadgeClass($passRate) : 'none',
+                    'risk_level' => $riskLevel['level'],
+                    'risk_label' => $riskLevel['label'],
+                ];
+            })
+            ->sortByDesc('pass_rate')
+            ->values();
+    }
+
+    private function getDepartmentTeacherSubjects($department, ?Semester $semester = null): Collection
+    {
+        return $department->courses()
+            ->with([
+                'subjects.teacherSubjects' => function ($q) use ($semester) {
+                    if ($semester) {
+                        $q->where('semester_id', $semester->id);
+                    }
+
+                    $q->with(['exams.examResults', 'teacher', 'subject']);
+                },
+            ])
+            ->get()
+            ->flatMap(fn($course) => $course->subjects)
+            ->flatMap(fn($subject) => $subject->teacherSubjects)
+            ->unique('id')
+            ->values();
     }
 
     /**

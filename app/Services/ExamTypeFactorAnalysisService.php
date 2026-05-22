@@ -21,6 +21,7 @@ class ExamTypeFactorAnalysisService
      */
     public function analyzeExamTypePerformance(Teacher $teacher, string $examType, ?Semester $semester = null): array
     {
+        $examType = $this->normalizeExamType($examType);
         $teacherSubjects = $teacher->teacherSubjects();
         
         if ($semester) {
@@ -46,11 +47,11 @@ class ExamTypeFactorAnalysisService
         $itemMatrixData = [];
 
         $exams->each(function ($exam) use (&$totalResults, &$passCount, &$passRates, &$itemMatrixData) {
-            $passCount += $exam->examResults->where('is_passed', true)->count();
+            $passCount += $exam->examResults->where('remark', 'pass')->count();
             $totalResults += $exam->examResults->count();
             
             if ($exam->examResults->count() > 0) {
-                $passRate = round(($exam->examResults->where('is_passed', true)->count() / $exam->examResults->count()) * 100, 1);
+                $passRate = round(($exam->examResults->where('remark', 'pass')->count() / $exam->examResults->count()) * 100, 1);
                 $passRates[] = $passRate;
             }
 
@@ -117,11 +118,11 @@ class ExamTypeFactorAnalysisService
         $itemMatrixData = [];
 
         $exams->each(function ($exam) use (&$totalResults, &$passCount, &$passRates, &$itemMatrixData) {
-            $passCount += $exam->examResults->where('is_passed', true)->count();
+            $passCount += $exam->examResults->where('remark', 'pass')->count();
             $totalResults += $exam->examResults->count();
             
             if ($exam->examResults->count() > 0) {
-                $passRate = round(($exam->examResults->where('is_passed', true)->count() / $exam->examResults->count()) * 100, 1);
+                $passRate = round(($exam->examResults->where('remark', 'pass')->count() / $exam->examResults->count()) * 100, 1);
                 $passRates[] = $passRate;
             }
 
@@ -287,5 +288,18 @@ class ExamTypeFactorAnalysisService
                 'student_factor' => 'No data available.',
             ],
         ];
+    }
+
+    private function normalizeExamType(string $examType): string
+    {
+        $normalized = strtolower(trim($examType));
+
+        return match ($normalized) {
+            'prelim', 'preliminary' => 'prelim',
+            'midterm' => 'midterm',
+            'prefinal', 'pre-final', 'pre final' => 'prefinal',
+            'final' => 'final',
+            default => $normalized,
+        };
     }
 }
